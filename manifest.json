@@ -1,0 +1,20 @@
+{
+  "name": "GoSlash",
+  "description": "Use address bar shortcuts like go fb to jump to sites instantly.",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "permissions": ["storage", "tabs"],
+  "omnibox": {
+    "keyword": "go"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "options_page": "options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
