@@ -1,13 +1,4 @@
-const STORAGE_KEY = "shortcuts";
-
-const DEFAULT_SHORTCUTS = [
-  { keyword: "gm", url: "https://mail.google.com", title: "Gmail" },
-  { keyword: "yt", url: "https://www.youtube.com", title: "YouTube" },
-  { keyword: "gh", url: "https://github.com/{path}", title: "GitHub" },
-  { keyword: "g", url: "https://www.google.com/search?q={query}", title: "Google" }
-];
-
-const keywordPattern = /^[a-z0-9][a-z0-9_-]*$/;
+// shared.js must be loaded before this file
 
 const elements = {
   form: document.getElementById("shortcut-form"),
@@ -26,28 +17,6 @@ const elements = {
 
 let currentEditIndex = null;
 
-function getShortcuts() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get(STORAGE_KEY, (data) => {
-      const list = data[STORAGE_KEY];
-      resolve(Array.isArray(list) ? list : []);
-    });
-  });
-}
-
-function setShortcuts(list) {
-  return new Promise((resolve) => {
-    chrome.storage.sync.set({ [STORAGE_KEY]: list }, () => resolve());
-  });
-}
-
-function ensureScheme(url) {
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) {
-    return url;
-  }
-  return `https://${url}`;
-}
-
 function showStatus(message, type = "") {
   elements.status.textContent = message;
   elements.status.className = `status ${type}`.trim();
@@ -65,12 +34,8 @@ function normalizeEntry(entry) {
   const url = (entry.url || "").trim();
   const title = (entry.title || "").trim();
 
-  if (!keyword || !keywordPattern.test(keyword)) {
-    return null;
-  }
-  if (!url) {
-    return null;
-  }
+  if (!keyword || !KEYWORD_PATTERN.test(keyword)) return null;
+  if (!url) return null;
 
   return {
     keyword,
@@ -105,7 +70,7 @@ function render(list) {
     urlCell.appendChild(urlCode);
 
     const titleCell = document.createElement("td");
-    titleCell.textContent = entry.title || "–";
+    titleCell.textContent = entry.title || "-";
 
     const actionsCell = document.createElement("td");
     const editBtn = document.createElement("button");
@@ -229,7 +194,7 @@ async function importShortcuts() {
     render(list);
     showStatus(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
     elements.importFile.value = "";
-  } catch (error) {
+  } catch {
     showStatus("Import failed: invalid JSON file.", "error");
   }
 }
@@ -247,16 +212,15 @@ async function exportShortcuts() {
 
 async function resetShortcuts() {
   const confirmed = window.confirm("Reset to default shortcuts? This replaces your current list.");
-  if (!confirmed) {
-    return;
-  }
+  if (!confirmed) return;
+
   await setShortcuts(DEFAULT_SHORTCUTS);
   render(DEFAULT_SHORTCUTS);
   resetForm();
   showStatus("Defaults restored.");
 }
 
-async function ensureDefaults() {
+async function init() {
   const list = await getShortcuts();
   if (!list.length) {
     await setShortcuts(DEFAULT_SHORTCUTS);
@@ -266,6 +230,7 @@ async function ensureDefaults() {
   render(list);
 }
 
+// Event listeners
 elements.form.addEventListener("submit", upsertShortcut);
 elements.cancelBtn.addEventListener("click", () => {
   resetForm();
@@ -275,4 +240,4 @@ elements.importBtn.addEventListener("click", importShortcuts);
 elements.exportBtn.addEventListener("click", exportShortcuts);
 elements.resetBtn.addEventListener("click", resetShortcuts);
 
-ensureDefaults();
+init();

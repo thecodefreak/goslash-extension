@@ -3,7 +3,7 @@
   "description": "Use address bar shortcuts like go fb to jump to sites instantly.",
   "version": "1.0.0",
   "manifest_version": 3,
-  "permissions": ["storage", "tabs"],
+  "permissions": ["storage"],
   "omnibox": {
     "keyword": "go"
   },

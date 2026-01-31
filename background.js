@@ -1,25 +1,9 @@
-const STORAGE_KEY = "shortcuts";
+importScripts("shared.js");
 
-const DEFAULT_SHORTCUTS = [
-  { keyword: "gm", url: "https://mail.google.com", title: "Gmail" },
-  { keyword: "yt", url: "https://www.youtube.com", title: "YouTube" },
-  { keyword: "gh", url: "https://github.com/{path}", title: "GitHub" },
-  { keyword: "g", url: "https://www.google.com/search?q={query}", title: "Google" }
-];
-
-const keywordPattern = /^[a-z0-9][a-z0-9_-]*$/;
-
-function ensureScheme(url) {
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)) {
-    return url;
-  }
-  return `https://${url}`;
-}
+const MAX_SUGGESTIONS = 5;
 
 function encodePath(path) {
-  if (!path) {
-    return "";
-  }
+  if (!path) return "";
   return path
     .split("/")
     .filter(Boolean)
@@ -32,9 +16,7 @@ function parseInput(text) {
   if (trimmed.startsWith("/")) {
     trimmed = trimmed.slice(1);
   }
-  if (!trimmed) {
-    return null;
-  }
+  if (!trimmed) return null;
 
   const whitespaceIndex = trimmed.search(/\s/);
   const beforeWhitespace = whitespaceIndex === -1 ? trimmed : trimmed.slice(0, whitespaceIndex);
@@ -44,26 +26,9 @@ function parseInput(text) {
   const keyword = slashIndex === -1 ? beforeWhitespace : beforeWhitespace.slice(0, slashIndex);
   const path = slashIndex === -1 ? "" : beforeWhitespace.slice(slashIndex + 1);
 
-  if (!keyword || !keywordPattern.test(keyword)) {
-    return null;
-  }
+  if (!keyword || !KEYWORD_PATTERN.test(keyword)) return null;
 
   return { keyword, path, query };
-}
-
-async function getShortcuts() {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get(STORAGE_KEY, (data) => {
-      const list = data[STORAGE_KEY];
-      resolve(Array.isArray(list) ? list : []);
-    });
-  });
-}
-
-async function setShortcuts(list) {
-  return new Promise((resolve) => {
-    chrome.storage.sync.set({ [STORAGE_KEY]: list }, () => resolve());
-  });
 }
 
 function applyTemplate(url, path, query) {
@@ -76,37 +41,128 @@ function applyTemplate(url, path, query) {
   return result;
 }
 
-async function handleInput(text) {
-  const parsed = parseInput(text);
-  if (!parsed) {
-    return;
+function escapeXml(text) {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function buildDescription(entry, matchedKeyword) {
+  const keyword = escapeXml(entry.keyword);
+  const label = escapeXml(entry.title || entry.url);
+
+  // Highlight the matched portion of the keyword
+  if (matchedKeyword && entry.keyword.startsWith(matchedKeyword)) {
+    const matchPart = keyword.slice(0, matchedKeyword.length);
+    const restPart = keyword.slice(matchedKeyword.length);
+    return `<match>${matchPart}</match>${restPart} <dim>- ${label}</dim>`;
   }
 
-  const shortcuts = await getShortcuts();
-  const match = shortcuts.find((entry) => entry.keyword === parsed.keyword);
-  if (!match || !match.url) {
-    return;
-  }
+  return `<match>${keyword}</match> <dim>- ${label}</dim>`;
+}
 
-  const target = applyTemplate(match.url, parsed.path, parsed.query);
-  const finalUrl = ensureScheme(target);
+async function navigate(url, disposition) {
+  const finalUrl = ensureScheme(url);
 
-  const tabs = await new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (result) => resolve(result));
-  });
-  const activeTab = tabs && tabs.length ? tabs[0] : null;
-  if (activeTab && activeTab.id) {
-    chrome.tabs.update(activeTab.id, { url: finalUrl });
+  if (disposition === "newForegroundTab") {
+    chrome.tabs.create({ url: finalUrl, active: true });
+  } else if (disposition === "newBackgroundTab") {
+    chrome.tabs.create({ url: finalUrl, active: false });
+  } else {
+    // currentTab (default)
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab?.id) {
+      chrome.tabs.update(tab.id, { url: finalUrl });
+    }
   }
 }
 
+async function handleInput(text, disposition) {
+  const parsed = parseInput(text);
+  if (!parsed) return;
+
+  const shortcuts = await getShortcuts();
+  const match = shortcuts.find((entry) => entry.keyword === parsed.keyword);
+  if (!match?.url) return;
+
+  const target = applyTemplate(match.url, parsed.path, parsed.query);
+  await navigate(target, disposition);
+}
+
+// Set default suggestion when user starts typing
+chrome.omnibox.onInputStarted.addListener(() => {
+  chrome.omnibox.setDefaultSuggestion({
+    description: "Type a shortcut (e.g., yt, gh, g search terms)"
+  });
+});
+
+// Provide suggestions as user types
+chrome.omnibox.onInputChanged.addListener((text, suggest) => {
+  const parsed = parseInput(text);
+
+  getShortcuts().then((shortcuts) => {
+    if (!parsed) {
+      // Empty input - show hint + all shortcuts in dropdown
+      chrome.omnibox.setDefaultSuggestion({
+        description: "Type a shortcut (e.g., yt, gh, g search terms)"
+      });
+      const suggestions = shortcuts.slice(0, MAX_SUGGESTIONS).map((entry) => ({
+        content: entry.keyword,
+        description: buildDescription(entry, "")
+      }));
+      suggest(suggestions);
+      return;
+    }
+
+    // Check for exact match
+    const exactMatch = shortcuts.find((s) => s.keyword === parsed.keyword);
+
+    if (exactMatch) {
+      // Show title prominently in default suggestion
+      const title = escapeXml(exactMatch.title || exactMatch.keyword);
+      const url = escapeXml(exactMatch.url);
+      chrome.omnibox.setDefaultSuggestion({
+        description: `<match>${title}</match> <dim>- ${url}</dim>`
+      });
+    } else {
+      // No exact match - clear the hint
+      chrome.omnibox.setDefaultSuggestion({
+        description: `<dim>No match for:</dim> ${escapeXml(parsed.keyword)}`
+      });
+    }
+
+    // Dropdown: show prefix matches EXCLUDING exact match
+    const otherMatches = shortcuts
+      .filter((s) => s.keyword.startsWith(parsed.keyword) && s.keyword !== parsed.keyword)
+      .slice(0, MAX_SUGGESTIONS);
+
+    const suggestions = otherMatches.map((entry) => {
+      let content = entry.keyword;
+      if (parsed.path) content += "/" + parsed.path;
+      if (parsed.query) content += " " + parsed.query;
+
+      return {
+        content,
+        description: buildDescription(entry, parsed.keyword)
+      };
+    });
+
+    suggest(suggestions);
+  });
+});
+
+// Handle selection
+chrome.omnibox.onInputEntered.addListener((text, disposition) => {
+  handleInput(text, disposition);
+});
+
+// Initialize defaults on install
 chrome.runtime.onInstalled.addListener(async () => {
   const shortcuts = await getShortcuts();
   if (!shortcuts.length) {
     await setShortcuts(DEFAULT_SHORTCUTS);
   }
-});
-
-chrome.omnibox.onInputEntered.addListener((text) => {
-  handleInput(text);
 });
