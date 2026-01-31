@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   --ink: #1f2430;
   --muted: #5d667a;
   --surface: #ffffff;
@@ -8,7 +8,33 @@
   --accent-strong: #1147b7;
   --border: #dde2ee;
   --danger: #c82a39;
+  --danger-hover: #a61f2c;
   --shadow: 0 12px 30px rgba(20, 30, 60, 0.12);
+  --input-bg: #fbfcff;
+  --code-bg: #f1f4ff;
+  --ghost-hover: #e9eefb;
+  --body-bg: radial-gradient(circle at top, #f9f2ff, #f1f6ff 55%, #fdfefe 100%);
+  --hero-bg: linear-gradient(135deg, #ffffff 20%, #eef3ff 80%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e4e8f0;
+    --muted: #9ca3b4;
+    --surface: #1a1c23;
+    --surface-alt: #252830;
+    --accent: #4d8eff;
+    --accent-strong: #6ba1ff;
+    --border: #3a3f4b;
+    --danger: #e94857;
+    --danger-hover: #ff5a6a;
+    --shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+    --input-bg: #22252e;
+    --code-bg: #2a2f3a;
+    --ghost-hover: #2d323e;
+    --body-bg: radial-gradient(circle at top, #1a1825, #1c1f28 55%, #181a1f 100%);
+    --hero-bg: linear-gradient(135deg, #1e2028 20%, #252a35 80%);
+  }
 }
 
 * {
@@ -19,7 +45,7 @@ body {
   margin: 0;
   font-family: "Avenir Next", "Nunito", "Segoe UI", sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top, #f9f2ff, #f1f6ff 55%, #fdfefe 100%);
+  background: var(--body-bg);
   min-height: 100vh;
 }
 
@@ -36,7 +62,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background: linear-gradient(135deg, #ffffff 20%, #eef3ff 80%);
+  background: var(--hero-bg);
   border: 1px solid var(--border);
   border-radius: 20px;
   padding: 24px;
@@ -107,7 +133,8 @@ input[type="file"] {
   border: 1px solid var(--border);
   padding: 10px 12px;
   font-size: 15px;
-  background: #fbfcff;
+  background: var(--input-bg);
+  color: var(--ink);
 }
 
 small {
@@ -143,7 +170,7 @@ button.ghost {
 }
 
 button.ghost:hover {
-  background: #e9eefb;
+  background: var(--ghost-hover);
 }
 
 button.danger {
@@ -151,7 +178,7 @@ button.danger {
 }
 
 button.danger:hover {
-  background: #a61f2c;
+  background: var(--danger-hover);
 }
 
 .status {
@@ -187,7 +214,7 @@ td {
 }
 
 td code {
-  background: #f1f4ff;
+  background: var(--code-bg);
   padding: 2px 6px;
   border-radius: 6px;
 }
