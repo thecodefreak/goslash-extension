@@ -13,6 +13,7 @@ const elements = {
   importBtn: document.getElementById("import-btn"),
   exportBtn: document.getElementById("export-btn"),
   resetBtn: document.getElementById("reset-btn"),
+  utilityStatus: document.getElementById("utility-status"),
   searchInput: document.getElementById("search-input"),
   showUsage: document.getElementById("show-usage"),
   usageHeader: document.getElementById("usage-header")
@@ -26,6 +27,11 @@ let sortDescending = true;
 function showStatus(message, type = "") {
   elements.status.textContent = message;
   elements.status.className = `status ${type}`.trim();
+}
+
+function showUtilityStatus(message, type = "") {
+  elements.utilityStatus.textContent = message;
+  elements.utilityStatus.className = `status ${type}`.trim();
 }
 
 function resetForm() {
@@ -213,7 +219,7 @@ async function upsertShortcut(event) {
 async function importShortcuts() {
   const file = elements.importFile.files[0];
   if (!file) {
-    showStatus("Choose a JSON file to import.", "error");
+    showUtilityStatus("Choose a JSON file to import.", "error");
     return;
   }
 
@@ -222,7 +228,7 @@ async function importShortcuts() {
     const parsed = JSON.parse(text);
     const incoming = Array.isArray(parsed) ? parsed : parsed.shortcuts;
     if (!Array.isArray(incoming)) {
-      showStatus("Import failed: JSON must be an array or {shortcuts: []}.", "error");
+      showUtilityStatus("Import failed: JSON must be an array or {shortcuts: []}.", "error");
       return;
     }
 
@@ -247,11 +253,11 @@ async function importShortcuts() {
     });
 
     await setShortcuts(list);
-    showStatus(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
+    showUtilityStatus(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
     elements.importFile.value = "";
     await refreshList();
   } catch {
-    showStatus("Import failed: invalid JSON file.", "error");
+    showUtilityStatus("Import failed: invalid JSON file.", "error");
   }
 }
 
@@ -271,6 +277,7 @@ async function exportShortcuts() {
   link.download = "goslash-shortcuts.json";
   link.click();
   URL.revokeObjectURL(url);
+  showUtilityStatus(`Exported ${list.length} shortcut(s).`);
 }
 
 async function resetShortcuts() {
@@ -279,7 +286,7 @@ async function resetShortcuts() {
 
   await setShortcuts(DEFAULT_SHORTCUTS);
   resetForm();
-  showStatus("Defaults restored.");
+  showUtilityStatus("Defaults restored.");
   await refreshList();
 }
 

@@ -97,8 +97,8 @@ async function handleInput(text, disposition) {
   if (!match?.url) return;
 
   const target = applyTemplate(match.url, parsed.path, parsed.query);
-  await navigate(target, disposition);
   await incrementUsage(parsed.keyword);
+  await navigate(target, disposition);
 }
 
 // Set default suggestion when user starts typing
