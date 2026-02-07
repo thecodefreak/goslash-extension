@@ -201,7 +201,14 @@ async function importShortcuts() {
 
 async function exportShortcuts() {
   const list = await getShortcuts();
-  const blob = new Blob([JSON.stringify(list, null, 2)], { type: "application/json" });
+  const manifest = chrome.runtime.getManifest();
+  const exportData = {
+    name: manifest.name,
+    version: manifest.version,
+    exportedAt: new Date().toISOString(),
+    shortcuts: list
+  };
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

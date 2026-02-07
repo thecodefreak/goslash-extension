@@ -81,6 +81,14 @@ async function navigate(url, disposition) {
 }
 
 async function handleInput(text, disposition) {
+  const trimmed = (text || "").trim();
+
+  // Special case: "/" opens the options page
+  if (trimmed === "/") {
+    chrome.runtime.openOptionsPage();
+    return;
+  }
+
   const parsed = parseInput(text);
   if (!parsed) return;
 
@@ -95,19 +103,30 @@ async function handleInput(text, disposition) {
 // Set default suggestion when user starts typing
 chrome.omnibox.onInputStarted.addListener(() => {
   chrome.omnibox.setDefaultSuggestion({
-    description: "Type a shortcut (e.g., yt, gh, g search terms)"
+    description: "Type a shortcut (e.g., yt, gh) or <match>/</match> for settings"
   });
 });
 
 // Provide suggestions as user types
 chrome.omnibox.onInputChanged.addListener((text, suggest) => {
+  const trimmed = (text || "").trim();
+
+  // Special case: "/" shows options hint
+  if (trimmed === "/") {
+    chrome.omnibox.setDefaultSuggestion({
+      description: "<match>Open GoSlash settings</match>"
+    });
+    suggest([]);
+    return;
+  }
+
   const parsed = parseInput(text);
 
   getShortcuts().then((shortcuts) => {
     if (!parsed) {
       // Empty input - show hint + all shortcuts in dropdown
       chrome.omnibox.setDefaultSuggestion({
-        description: "Type a shortcut (e.g., yt, gh, g search terms)"
+        description: "Type a shortcut (e.g., yt, gh) or <match>/</match> for settings"
       });
       const suggestions = shortcuts.slice(0, MAX_SUGGESTIONS).map((entry) => ({
         content: entry.keyword,
