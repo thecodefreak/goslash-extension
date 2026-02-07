@@ -12,10 +12,16 @@ const elements = {
   importFile: document.getElementById("import-file"),
   importBtn: document.getElementById("import-btn"),
   exportBtn: document.getElementById("export-btn"),
-  resetBtn: document.getElementById("reset-btn")
+  resetBtn: document.getElementById("reset-btn"),
+  searchInput: document.getElementById("search-input"),
+  showUsage: document.getElementById("show-usage"),
+  usageHeader: document.getElementById("usage-header")
 };
 
 let currentEditIndex = null;
+let showUsageStats = false;
+let sortByUsage = false;
+let sortDescending = true;
 
 function showStatus(message, type = "") {
   elements.status.textContent = message;
@@ -44,20 +50,51 @@ function normalizeEntry(entry) {
   };
 }
 
-function render(list) {
+function updateSortArrow() {
+  if (!showUsageStats) return;
+  const arrow = sortByUsage ? (sortDescending ? " \u25BC" : " \u25B2") : "";
+  elements.usageHeader.textContent = "Usage" + arrow;
+}
+
+function render(list, usageStats = {}, filterText = "") {
   elements.list.innerHTML = "";
 
-  if (!list.length) {
+  // Filter by keyword, URL, or title
+  let filtered = list.map((entry, index) => ({ entry, index }));
+  if (filterText) {
+    const lower = filterText.toLowerCase();
+    filtered = filtered.filter(({ entry }) =>
+      entry.keyword.toLowerCase().includes(lower) ||
+      entry.url.toLowerCase().includes(lower) ||
+      (entry.title || "").toLowerCase().includes(lower)
+    );
+  }
+
+  // Sort by usage if enabled
+  if (showUsageStats && sortByUsage) {
+    filtered.sort((a, b) => {
+      const aUsage = usageStats[a.entry.keyword] || 0;
+      const bUsage = usageStats[b.entry.keyword] || 0;
+      return sortDescending ? bUsage - aUsage : aUsage - bUsage;
+    });
+  }
+
+  // Update header arrow
+  updateSortArrow();
+
+  if (!filtered.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 4;
-    cell.textContent = "No shortcuts yet. Add one above.";
+    cell.colSpan = showUsageStats ? 5 : 4;
+    cell.textContent = filterText
+      ? "No shortcuts match your filter."
+      : "No shortcuts yet. Add one above.";
     row.appendChild(cell);
     elements.list.appendChild(row);
     return;
   }
 
-  list.forEach((entry, index) => {
+  filtered.forEach(({ entry, index }) => {
     const row = document.createElement("tr");
     row.dataset.index = String(index);
 
@@ -93,10 +130,27 @@ function render(list) {
     row.appendChild(keywordCell);
     row.appendChild(urlCell);
     row.appendChild(titleCell);
+
+    // Add usage cell if visible
+    if (showUsageStats) {
+      const usageCell = document.createElement("td");
+      usageCell.className = "usage-cell usage-col";
+      const count = usageStats[entry.keyword] || 0;
+      usageCell.textContent = count === 1 ? "1 use" : `${count} uses`;
+      row.appendChild(usageCell);
+    }
+
     row.appendChild(actionsCell);
 
     elements.list.appendChild(row);
   });
+}
+
+async function refreshList() {
+  const list = await getShortcuts();
+  const usageStats = await getUsageStats();
+  const filterText = elements.searchInput.value.trim();
+  render(list, usageStats, filterText);
 }
 
 function startEdit(index, entry) {
@@ -111,13 +165,15 @@ function startEdit(index, entry) {
 
 async function removeShortcut(index) {
   const list = await getShortcuts();
+  const keyword = list[index].keyword;
   list.splice(index, 1);
   await setShortcuts(list);
-  render(list);
+  await deleteUsage(keyword);
   if (currentEditIndex === index) {
     resetForm();
   }
   showStatus("Shortcut removed.");
+  await refreshList();
 }
 
 async function upsertShortcut(event) {
@@ -150,8 +206,8 @@ async function upsertShortcut(event) {
   }
 
   await setShortcuts(list);
-  render(list);
   resetForm();
+  await refreshList();
 }
 
 async function importShortcuts() {
@@ -191,9 +247,9 @@ async function importShortcuts() {
     });
 
     await setShortcuts(list);
-    render(list);
     showStatus(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
     elements.importFile.value = "";
+    await refreshList();
   } catch {
     showStatus("Import failed: invalid JSON file.", "error");
   }
@@ -222,19 +278,17 @@ async function resetShortcuts() {
   if (!confirmed) return;
 
   await setShortcuts(DEFAULT_SHORTCUTS);
-  render(DEFAULT_SHORTCUTS);
   resetForm();
   showStatus("Defaults restored.");
+  await refreshList();
 }
 
 async function init() {
   const list = await getShortcuts();
   if (!list.length) {
     await setShortcuts(DEFAULT_SHORTCUTS);
-    render(DEFAULT_SHORTCUTS);
-    return;
   }
-  render(list);
+  await refreshList();
 }
 
 // Event listeners
@@ -246,5 +300,29 @@ elements.cancelBtn.addEventListener("click", () => {
 elements.importBtn.addEventListener("click", importShortcuts);
 elements.exportBtn.addEventListener("click", exportShortcuts);
 elements.resetBtn.addEventListener("click", resetShortcuts);
+
+// Search filter
+elements.searchInput.addEventListener("input", refreshList);
+
+// Usage toggle
+elements.showUsage.addEventListener("change", () => {
+  showUsageStats = elements.showUsage.checked;
+  elements.usageHeader.hidden = !showUsageStats;
+  if (!showUsageStats) {
+    sortByUsage = false;
+  }
+  refreshList();
+});
+
+// Sort by usage
+elements.usageHeader.addEventListener("click", () => {
+  if (sortByUsage) {
+    sortDescending = !sortDescending;
+  } else {
+    sortByUsage = true;
+    sortDescending = true;
+  }
+  refreshList();
+});
 
 init();

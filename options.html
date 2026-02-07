@@ -46,6 +46,13 @@
           <h2>Your shortcuts</h2>
           <p>Examples: <strong>go fb</strong>, <strong>go gh/openai</strong>, <strong>go g gpt 5.2</strong></p>
         </div>
+        <div class="filter-row">
+          <input type="text" id="search-input" placeholder="Filter shortcuts..." autocomplete="off" />
+          <label class="toggle-label">
+            <input type="checkbox" id="show-usage" />
+            Show usage stats
+          </label>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -53,6 +60,7 @@
                 <th>Keyword</th>
                 <th>URL</th>
                 <th>Title</th>
+                <th id="usage-header" class="usage-col sortable" hidden>Usage</th>
                 <th>Actions</th>
               </tr>
             </thead>

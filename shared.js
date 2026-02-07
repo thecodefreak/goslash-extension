@@ -30,3 +30,31 @@ function setShortcuts(list) {
     chrome.storage.sync.set({ [STORAGE_KEY]: list }, () => resolve());
   });
 }
+
+const USAGE_KEY = "usage";
+
+function getUsageStats() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get(USAGE_KEY, (data) => {
+      resolve(data[USAGE_KEY] || {});
+    });
+  });
+}
+
+function incrementUsage(keyword) {
+  return getUsageStats().then((stats) => {
+    stats[keyword] = (stats[keyword] || 0) + 1;
+    return new Promise((resolve) => {
+      chrome.storage.sync.set({ [USAGE_KEY]: stats }, resolve);
+    });
+  });
+}
+
+function deleteUsage(keyword) {
+  return getUsageStats().then((stats) => {
+    delete stats[keyword];
+    return new Promise((resolve) => {
+      chrome.storage.sync.set({ [USAGE_KEY]: stats }, resolve);
+    });
+  });
+}
