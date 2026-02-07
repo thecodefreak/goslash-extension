@@ -186,3 +186,8 @@ chrome.runtime.onInstalled.addListener(async () => {
     await setShortcuts(DEFAULT_SHORTCUTS);
   }
 });
+
+// Open options page when toolbar icon is clicked
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
+});

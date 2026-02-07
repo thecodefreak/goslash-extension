@@ -37,8 +37,7 @@
             <button id="save-btn" type="submit">Save shortcut</button>
             <button id="cancel-btn" type="button" class="ghost" hidden>Cancel edit</button>
           </div>
-          <p id="status" class="status" role="status" aria-live="polite"></p>
-        </form>
+          </form>
       </section>
 
       <section class="card">
@@ -83,9 +82,10 @@
           </div>
         </div>
         <p class="hint">Import merges without duplicates. Existing keywords are preserved.</p>
-        <p id="utility-status" class="status" role="status" aria-live="polite"></p>
       </section>
     </main>
+
+    <div id="toast-container" role="status" aria-live="polite"></div>
 
     <script src="shared.js"></script>
     <script src="options.js"></script>

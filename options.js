@@ -7,16 +7,15 @@ const elements = {
   title: document.getElementById("title"),
   saveBtn: document.getElementById("save-btn"),
   cancelBtn: document.getElementById("cancel-btn"),
-  status: document.getElementById("status"),
   list: document.getElementById("shortcuts-list"),
   importFile: document.getElementById("import-file"),
   importBtn: document.getElementById("import-btn"),
   exportBtn: document.getElementById("export-btn"),
   resetBtn: document.getElementById("reset-btn"),
-  utilityStatus: document.getElementById("utility-status"),
   searchInput: document.getElementById("search-input"),
   showUsage: document.getElementById("show-usage"),
-  usageHeader: document.getElementById("usage-header")
+  usageHeader: document.getElementById("usage-header"),
+  toastContainer: document.getElementById("toast-container")
 };
 
 let currentEditIndex = null;
@@ -24,14 +23,33 @@ let showUsageStats = false;
 let sortByUsage = false;
 let sortDescending = true;
 
-function showStatus(message, type = "") {
-  elements.status.textContent = message;
-  elements.status.className = `status ${type}`.trim();
-}
+const TOAST_ICONS = {
+  success: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`,
+  error: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>`,
+  info: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>`
+};
 
-function showUtilityStatus(message, type = "") {
-  elements.utilityStatus.textContent = message;
-  elements.utilityStatus.className = `status ${type}`.trim();
+function showToast(message, type = "success") {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+
+  const icon = document.createElement("span");
+  icon.className = "toast-icon";
+  icon.innerHTML = TOAST_ICONS[type] || TOAST_ICONS.info;
+
+  const text = document.createElement("span");
+  text.textContent = message;
+
+  toast.appendChild(icon);
+  toast.appendChild(text);
+  elements.toastContainer.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("toast-out");
+    toast.addEventListener("animationend", () => {
+      toast.remove();
+    });
+  }, 3000);
 }
 
 function resetForm() {
@@ -166,7 +184,7 @@ function startEdit(index, entry) {
   elements.title.value = entry.title || "";
   elements.saveBtn.textContent = "Update shortcut";
   elements.cancelBtn.hidden = false;
-  showStatus("Editing shortcut. Update fields and save.");
+  showToast("Editing shortcut. Update fields and save.", "info");
 }
 
 async function removeShortcut(index) {
@@ -178,7 +196,7 @@ async function removeShortcut(index) {
   if (currentEditIndex === index) {
     resetForm();
   }
-  showStatus("Shortcut removed.");
+  showToast("Shortcut removed!");
   await refreshList();
 }
 
@@ -192,23 +210,23 @@ async function upsertShortcut(event) {
 
   const normalized = normalizeEntry(input);
   if (!normalized) {
-    showStatus("Enter a valid keyword and URL.", "error");
+    showToast("Enter a valid keyword and URL.", "error");
     return;
   }
 
   const list = await getShortcuts();
   const duplicateIndex = list.findIndex((entry) => entry.keyword === normalized.keyword);
   if (duplicateIndex !== -1 && duplicateIndex !== currentEditIndex) {
-    showStatus("That keyword already exists.", "error");
+    showToast("That keyword already exists.", "error");
     return;
   }
 
   if (currentEditIndex !== null) {
     list[currentEditIndex] = normalized;
-    showStatus("Shortcut updated.");
+    showToast("Shortcut updated!");
   } else {
     list.push(normalized);
-    showStatus("Shortcut saved.");
+    showToast("Shortcut saved!");
   }
 
   await setShortcuts(list);
@@ -219,7 +237,7 @@ async function upsertShortcut(event) {
 async function importShortcuts() {
   const file = elements.importFile.files[0];
   if (!file) {
-    showUtilityStatus("Choose a JSON file to import.", "error");
+    showToast("Choose a JSON file to import.", "error");
     return;
   }
 
@@ -228,7 +246,7 @@ async function importShortcuts() {
     const parsed = JSON.parse(text);
     const incoming = Array.isArray(parsed) ? parsed : parsed.shortcuts;
     if (!Array.isArray(incoming)) {
-      showUtilityStatus("Import failed: JSON must be an array or {shortcuts: []}.", "error");
+      showToast("Import failed: invalid JSON format.", "error");
       return;
     }
 
@@ -253,11 +271,11 @@ async function importShortcuts() {
     });
 
     await setShortcuts(list);
-    showUtilityStatus(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
+    showToast(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
     elements.importFile.value = "";
     await refreshList();
   } catch {
-    showUtilityStatus("Import failed: invalid JSON file.", "error");
+    showToast("Import failed: invalid JSON file.", "error");
   }
 }
 
@@ -277,7 +295,7 @@ async function exportShortcuts() {
   link.download = "goslash-shortcuts.json";
   link.click();
   URL.revokeObjectURL(url);
-  showUtilityStatus(`Exported ${list.length} shortcut(s).`);
+  showToast(`Exported ${list.length} shortcut(s)!`);
 }
 
 async function resetShortcuts() {
@@ -286,7 +304,7 @@ async function resetShortcuts() {
 
   await setShortcuts(DEFAULT_SHORTCUTS);
   resetForm();
-  showUtilityStatus("Defaults restored.");
+  showToast("Defaults restored!");
   await refreshList();
 }
 
@@ -302,7 +320,7 @@ async function init() {
 elements.form.addEventListener("submit", upsertShortcut);
 elements.cancelBtn.addEventListener("click", () => {
   resetForm();
-  showStatus("Edit canceled.");
+  showToast("Edit canceled.", "info");
 });
 elements.importBtn.addEventListener("click", importShortcuts);
 elements.exportBtn.addEventListener("click", exportShortcuts);

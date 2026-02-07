@@ -2,11 +2,20 @@
   "name": "GoSlash",
   "short_name": "GoSlash",
   "description": "Jump to sites instantly with address bar shortcuts. Type 'go yt' to open YouTube, 'go gh/user' to visit GitHub profiles, and more.",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "manifest_version": 3,
   "permissions": ["storage"],
   "omnibox": {
     "keyword": "go"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "GoSlash - Type 'go' <space> in address bar"
   },
   "background": {
     "service_worker": "background.js"
