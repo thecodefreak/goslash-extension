@@ -1,7 +1,8 @@
 {
   "name": "GoSlash",
-  "description": "Use address bar shortcuts like go fb to jump to sites instantly.",
-  "version": "1.0.0",
+  "short_name": "GoSlash",
+  "description": "Jump to sites instantly with address bar shortcuts. Type 'go yt' to open YouTube, 'go gh/user' to visit GitHub profiles, and more.",
+  "version": "1.1.2",
   "manifest_version": 3,
   "permissions": ["storage"],
   "omnibox": {
@@ -16,5 +17,6 @@
     "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "homepage_url": "https://github.com/thecodefreak/goslash-extension"
 }
