@@ -69,8 +69,20 @@ body {
   box-shadow: var(--shadow);
 }
 
+.hero-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.hero-logo {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
 .hero h1 {
-  margin: 0 0 8px;
+  margin: 0;
   font-size: 32px;
 }
 
