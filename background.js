@@ -19,16 +19,10 @@ function parseInput(text) {
   if (!trimmed) return null;
 
   const whitespaceIndex = trimmed.search(/\s/);
-  const beforeWhitespace = whitespaceIndex === -1 ? trimmed : trimmed.slice(0, whitespaceIndex);
+  const route = whitespaceIndex === -1 ? trimmed : trimmed.slice(0, whitespaceIndex);
   const query = whitespaceIndex === -1 ? "" : trimmed.slice(whitespaceIndex).trim();
-
-  const slashIndex = beforeWhitespace.indexOf("/");
-  const keyword = slashIndex === -1 ? beforeWhitespace : beforeWhitespace.slice(0, slashIndex);
-  const path = slashIndex === -1 ? "" : beforeWhitespace.slice(slashIndex + 1);
-
-  if (!keyword || !KEYWORD_PATTERN.test(keyword)) return null;
-
-  return { keyword, path, query };
+  if (!route) return null;
+  return { route, query };
 }
 
 function applyTemplate(url, path, query) {
@@ -51,17 +45,37 @@ function escapeXml(text) {
 }
 
 function buildDescription(entry, matchedKeyword) {
-  const keyword = escapeXml(entry.keyword);
+  const shortcutKey = getShortcutKey(entry);
+  const keyword = escapeXml(shortcutKey);
   const label = escapeXml(entry.title || entry.url);
 
   // Highlight the matched portion of the keyword
-  if (matchedKeyword && entry.keyword.startsWith(matchedKeyword)) {
+  if (matchedKeyword && shortcutKey.startsWith(matchedKeyword.toLowerCase())) {
     const matchPart = keyword.slice(0, matchedKeyword.length);
     const restPart = keyword.slice(matchedKeyword.length);
     return `<match>${matchPart}</match>${restPart} <dim>- ${label}</dim>`;
   }
 
   return `<match>${keyword}</match> <dim>- ${label}</dim>`;
+}
+
+function resolveMatch(shortcuts, route) {
+  const lowerRoute = route.toLowerCase();
+  let bestMatch = null;
+
+  shortcuts.forEach((entry) => {
+    const key = getShortcutKey(entry);
+    if (!key) return;
+
+    if (lowerRoute === key || lowerRoute.startsWith(`${key}/`)) {
+      const path = lowerRoute === key ? "" : route.slice(key.length + 1);
+      if (!bestMatch || key.length > bestMatch.key.length) {
+        bestMatch = { entry, key, path };
+      }
+    }
+  });
+
+  return bestMatch;
 }
 
 async function navigate(url, disposition) {
@@ -93,18 +107,18 @@ async function handleInput(text, disposition) {
   if (!parsed) return;
 
   const shortcuts = await getShortcuts();
-  const match = shortcuts.find((entry) => entry.keyword === parsed.keyword);
-  if (!match?.url) return;
+  const match = resolveMatch(shortcuts, parsed.route);
+  if (!match?.entry?.url) return;
 
-  const target = applyTemplate(match.url, parsed.path, parsed.query);
-  await incrementUsage(parsed.keyword);
+  const target = applyTemplate(match.entry.url, match.path, parsed.query);
+  await incrementUsage(match.key);
   await navigate(target, disposition);
 }
 
 // Set default suggestion when user starts typing
 chrome.omnibox.onInputStarted.addListener(() => {
   chrome.omnibox.setDefaultSuggestion({
-    description: "Type a shortcut (e.g., yt, gh) or <match>/</match> for settings"
+    description: "Type a shortcut (e.g., yt, council/tax) or <match>/</match> for settings"
   });
 });
 
@@ -127,46 +141,51 @@ chrome.omnibox.onInputChanged.addListener((text, suggest) => {
     if (!parsed) {
       // Empty input - show hint + all shortcuts in dropdown
       chrome.omnibox.setDefaultSuggestion({
-        description: "Type a shortcut (e.g., yt, gh) or <match>/</match> for settings"
+        description: "Type a shortcut (e.g., yt, council/tax) or <match>/</match> for settings"
       });
-      const suggestions = shortcuts.slice(0, MAX_SUGGESTIONS).map((entry) => ({
-        content: entry.keyword,
-        description: buildDescription(entry, "")
-      }));
+      const suggestions = shortcuts
+        .map((entry) => ({ entry, key: getShortcutKey(entry) }))
+        .filter(({ key }) => Boolean(key))
+        .slice(0, MAX_SUGGESTIONS)
+        .map(({ entry, key }) => ({
+          content: key,
+          description: buildDescription(entry, "")
+        }));
       suggest(suggestions);
       return;
     }
 
-    // Check for exact match
-    const exactMatch = shortcuts.find((s) => s.keyword === parsed.keyword);
+    const exactMatch = resolveMatch(shortcuts, parsed.route);
 
     if (exactMatch) {
       // Show title prominently in default suggestion
-      const title = escapeXml(exactMatch.title || exactMatch.keyword);
-      const url = escapeXml(exactMatch.url);
+      const title = escapeXml(exactMatch.entry.title || exactMatch.key);
+      const url = escapeXml(exactMatch.entry.url);
       chrome.omnibox.setDefaultSuggestion({
         description: `<match>${title}</match> <dim>- ${url}</dim>`
       });
     } else {
       // No exact match - clear the hint
       chrome.omnibox.setDefaultSuggestion({
-        description: `<dim>No match for:</dim> ${escapeXml(parsed.keyword)}`
+        description: `<dim>No match for:</dim> ${escapeXml(parsed.route)}`
       });
     }
 
     // Dropdown: show prefix matches EXCLUDING exact match
     const otherMatches = shortcuts
-      .filter((s) => s.keyword.startsWith(parsed.keyword) && s.keyword !== parsed.keyword)
+      .map((entry) => ({ entry, key: getShortcutKey(entry) }))
+      .filter(
+        ({ key }) =>
+          Boolean(key) && key.startsWith(parsed.route.toLowerCase()) && key !== parsed.route.toLowerCase()
+      )
       .slice(0, MAX_SUGGESTIONS);
 
-    const suggestions = otherMatches.map((entry) => {
-      let content = entry.keyword;
-      if (parsed.path) content += "/" + parsed.path;
+    const suggestions = otherMatches.map(({ entry, key }) => {
+      let content = key;
       if (parsed.query) content += " " + parsed.query;
-
       return {
         content,
-        description: buildDescription(entry, parsed.keyword)
+        description: buildDescription(entry, parsed.route)
       };
     });
 

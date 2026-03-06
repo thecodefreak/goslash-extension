@@ -1,7 +1,15 @@
 // shared.js must be loaded before this file
 
+const MODE_SHORTCUT = "shortcut";
+const MODE_GROUP = "group";
+
 const elements = {
   form: document.getElementById("shortcut-form"),
+  modeTabs: Array.from(document.querySelectorAll(".mode-tab[data-mode]")),
+  shortcutFields: document.getElementById("shortcut-fields"),
+  groupFields: document.getElementById("group-fields"),
+  shortcutGroup: document.getElementById("shortcut-group"),
+  groupName: document.getElementById("group-name"),
   keyword: document.getElementById("keyword"),
   url: document.getElementById("url"),
   title: document.getElementById("title"),
@@ -19,6 +27,7 @@ const elements = {
 };
 
 let currentEditIndex = null;
+let currentMode = MODE_SHORTCUT;
 let showUsageStats = false;
 let sortByUsage = false;
 let sortDescending = true;
@@ -52,26 +61,130 @@ function showToast(message, type = "success") {
   }, 3000);
 }
 
-function resetForm() {
+function getSelectedMode() {
+  return currentMode;
+}
+
+function setSelectedMode(mode) {
+  currentMode = mode === MODE_GROUP ? MODE_GROUP : MODE_SHORTCUT;
+  elements.modeTabs.forEach((tab) => {
+    const isSelected = tab.dataset.mode === currentMode;
+    tab.setAttribute("aria-selected", isSelected ? "true" : "false");
+    tab.tabIndex = isSelected ? 0 : -1;
+  });
+  updateModeUI();
+}
+
+function getGroupsFromShortcuts(list) {
+  return [...new Set(list.map((entry) => getShortcutGroup(entry)).filter(Boolean))];
+}
+
+function mergeGroups(...groupsLists) {
+  return [...new Set(groupsLists.flat().map((group) => normalizeSegment(group)).filter(Boolean))].sort();
+}
+
+function updateModeUI() {
+  const mode = getSelectedMode();
+  const isGroupMode = mode === MODE_GROUP;
+
+  elements.shortcutFields.hidden = isGroupMode;
+  elements.groupFields.hidden = !isGroupMode;
+  elements.shortcutFields.setAttribute("aria-hidden", isGroupMode ? "true" : "false");
+  elements.groupFields.setAttribute("aria-hidden", isGroupMode ? "false" : "true");
+  elements.cancelBtn.hidden = isGroupMode || currentEditIndex === null;
+
+  if (isGroupMode) {
+    elements.saveBtn.textContent = "Save group";
+  } else if (currentEditIndex !== null) {
+    elements.saveBtn.textContent = "Update shortcut";
+  } else {
+    elements.saveBtn.textContent = "Save shortcut";
+  }
+}
+
+function syncGroupOptions(groups) {
+  const previousValue = elements.shortcutGroup.value;
+  elements.shortcutGroup.innerHTML = "";
+
+  const noneOption = document.createElement("option");
+  noneOption.value = "";
+  noneOption.textContent = "No group (normal shortcut)";
+  elements.shortcutGroup.appendChild(noneOption);
+
+  groups.forEach((group) => {
+    const option = document.createElement("option");
+    option.value = group;
+    option.textContent = group;
+    elements.shortcutGroup.appendChild(option);
+  });
+
+  if (previousValue && groups.includes(previousValue)) {
+    elements.shortcutGroup.value = previousValue;
+  } else {
+    elements.shortcutGroup.value = "";
+  }
+}
+
+function clearShortcutInputs() {
+  elements.shortcutGroup.value = "";
+  elements.keyword.value = "";
+  elements.url.value = "";
+  elements.title.value = "";
+}
+
+function resetForm(options = {}) {
+  const { mode = MODE_SHORTCUT } = options;
+
   elements.form.reset();
   currentEditIndex = null;
-  elements.saveBtn.textContent = "Save shortcut";
-  elements.cancelBtn.hidden = true;
+  elements.groupName.value = "";
+  clearShortcutInputs();
+  setSelectedMode(mode);
 }
 
 function normalizeEntry(entry) {
-  const keyword = (entry.keyword || "").trim().toLowerCase();
+  let group = normalizeSegment(entry.group || "");
+  let keyword = normalizeSegment(entry.keyword || "");
   const url = (entry.url || "").trim();
   const title = (entry.title || "").trim();
 
+  // Import compatibility: allow { keyword: "group/keyword" } when group is omitted.
+  if (!group && keyword.includes("/")) {
+    const parts = keyword.split("/").filter(Boolean);
+    if (parts.length === 2) {
+      [group, keyword] = parts;
+    }
+  }
+
+  if (group && !KEYWORD_PATTERN.test(group)) return null;
   if (!keyword || !KEYWORD_PATTERN.test(keyword)) return null;
   if (!url) return null;
 
-  return {
+  const normalized = {
     keyword,
     url: ensureScheme(url),
     title: title || ""
   };
+
+  if (group) {
+    normalized.group = group;
+  }
+
+  return normalized;
+}
+
+function getUsageCount(usageStats, entry) {
+  const usageKey = getShortcutKey(entry);
+  if (Object.prototype.hasOwnProperty.call(usageStats, usageKey)) {
+    return usageStats[usageKey];
+  }
+
+  // Legacy fallback: old records were keyed only by keyword.
+  if (!getShortcutGroup(entry) && Object.prototype.hasOwnProperty.call(usageStats, entry.keyword)) {
+    return usageStats[entry.keyword];
+  }
+
+  return 0;
 }
 
 function updateSortArrow() {
@@ -83,27 +196,24 @@ function updateSortArrow() {
 function render(list, usageStats = {}, filterText = "") {
   elements.list.innerHTML = "";
 
-  // Filter by keyword, URL, or title
   let filtered = list.map((entry, index) => ({ entry, index }));
   if (filterText) {
     const lower = filterText.toLowerCase();
     filtered = filtered.filter(({ entry }) =>
-      entry.keyword.toLowerCase().includes(lower) ||
+      getShortcutKey(entry).includes(lower) ||
       entry.url.toLowerCase().includes(lower) ||
       (entry.title || "").toLowerCase().includes(lower)
     );
   }
 
-  // Sort by usage if enabled
   if (showUsageStats && sortByUsage) {
     filtered.sort((a, b) => {
-      const aUsage = usageStats[a.entry.keyword] || 0;
-      const bUsage = usageStats[b.entry.keyword] || 0;
+      const aUsage = getUsageCount(usageStats, a.entry);
+      const bUsage = getUsageCount(usageStats, b.entry);
       return sortDescending ? bUsage - aUsage : aUsage - bUsage;
     });
   }
 
-  // Update header arrow
   updateSortArrow();
 
   if (!filtered.length) {
@@ -122,8 +232,8 @@ function render(list, usageStats = {}, filterText = "") {
     const row = document.createElement("tr");
     row.dataset.index = String(index);
 
-    const keywordCell = document.createElement("td");
-    keywordCell.textContent = entry.keyword;
+    const shortcutCell = document.createElement("td");
+    shortcutCell.textContent = getShortcutKey(entry);
 
     const urlCell = document.createElement("td");
     const urlCode = document.createElement("code");
@@ -151,58 +261,92 @@ function render(list, usageStats = {}, filterText = "") {
     actionsCell.style.display = "flex";
     actionsCell.style.gap = "8px";
 
-    row.appendChild(keywordCell);
+    row.appendChild(shortcutCell);
     row.appendChild(urlCell);
     row.appendChild(titleCell);
 
-    // Add usage cell if visible
     if (showUsageStats) {
       const usageCell = document.createElement("td");
       usageCell.className = "usage-cell usage-col";
-      const count = usageStats[entry.keyword] || 0;
+      const count = getUsageCount(usageStats, entry);
       usageCell.textContent = count === 1 ? "1 use" : `${count} uses`;
       row.appendChild(usageCell);
     }
 
     row.appendChild(actionsCell);
-
     elements.list.appendChild(row);
   });
 }
 
 async function refreshList() {
-  const list = await getShortcuts();
-  const usageStats = await getUsageStats();
+  const [list, usageStats, savedGroups] = await Promise.all([
+    getShortcuts(),
+    getUsageStats(),
+    getGroups()
+  ]);
+
+  const allGroups = mergeGroups(savedGroups, getGroupsFromShortcuts(list));
+  syncGroupOptions(allGroups);
+
   const filterText = elements.searchInput.value.trim();
   render(list, usageStats, filterText);
 }
 
 function startEdit(index, entry) {
   currentEditIndex = index;
+  setSelectedMode(MODE_SHORTCUT);
+  elements.shortcutGroup.value = getShortcutGroup(entry);
   elements.keyword.value = entry.keyword;
   elements.url.value = entry.url;
   elements.title.value = entry.title || "";
-  elements.saveBtn.textContent = "Update shortcut";
-  elements.cancelBtn.hidden = false;
+  updateModeUI();
   showToast("Editing shortcut. Update fields and save.", "info");
 }
 
 async function removeShortcut(index) {
   const list = await getShortcuts();
-  const keyword = list[index].keyword;
+  const entry = list[index];
+  if (!entry) return;
+
+  const usageKey = getShortcutKey(entry);
   list.splice(index, 1);
   await setShortcuts(list);
-  await deleteUsage(keyword);
+  await deleteUsage(usageKey);
+
   if (currentEditIndex === index) {
     resetForm();
+  } else if (currentEditIndex !== null && currentEditIndex > index) {
+    currentEditIndex -= 1;
   }
+
   showToast("Shortcut removed!");
   await refreshList();
 }
 
-async function upsertShortcut(event) {
-  event.preventDefault();
+async function saveGroup() {
+  const group = normalizeSegment(elements.groupName.value);
+  if (!group || !KEYWORD_PATTERN.test(group)) {
+    showToast("Enter a valid group name.", "error");
+    return;
+  }
+
+  const [savedGroups, shortcuts] = await Promise.all([getGroups(), getShortcuts()]);
+  const allGroups = mergeGroups(savedGroups, getGroupsFromShortcuts(shortcuts));
+  if (allGroups.includes(group)) {
+    showToast("That group already exists.", "error");
+    return;
+  }
+
+  await setGroups([...savedGroups, group]);
+  elements.groupName.value = "";
+  showToast("Group saved!");
+  await refreshList();
+}
+
+async function saveShortcut() {
+  const group = normalizeSegment(elements.shortcutGroup.value);
   const input = {
+    group,
     keyword: elements.keyword.value,
     url: elements.url.value,
     title: elements.title.value
@@ -210,18 +354,21 @@ async function upsertShortcut(event) {
 
   const normalized = normalizeEntry(input);
   if (!normalized) {
-    showToast("Enter a valid keyword and URL.", "error");
+    showToast("Enter a valid shortcut keyword and URL.", "error");
     return;
   }
 
-  const list = await getShortcuts();
-  const duplicateIndex = list.findIndex((entry) => entry.keyword === normalized.keyword);
+  const [list, savedGroups] = await Promise.all([getShortcuts(), getGroups()]);
+  const normalizedKey = getShortcutKey(normalized);
+  const duplicateIndex = list.findIndex((entry) => getShortcutKey(entry) === normalizedKey);
   if (duplicateIndex !== -1 && duplicateIndex !== currentEditIndex) {
-    showToast("That keyword already exists.", "error");
+    showToast("That shortcut already exists.", "error");
     return;
   }
 
+  let previousKey = "";
   if (currentEditIndex !== null) {
+    previousKey = getShortcutKey(list[currentEditIndex]);
     list[currentEditIndex] = normalized;
     showToast("Shortcut updated!");
   } else {
@@ -230,8 +377,28 @@ async function upsertShortcut(event) {
   }
 
   await setShortcuts(list);
+
+  if (previousKey && previousKey !== normalizedKey) {
+    await deleteUsage(previousKey);
+  }
+
+  if (normalized.group && !savedGroups.includes(normalized.group)) {
+    await setGroups([...savedGroups, normalized.group]);
+  }
+
   resetForm();
   await refreshList();
+}
+
+async function upsertShortcut(event) {
+  event.preventDefault();
+
+  if (getSelectedMode() === MODE_GROUP) {
+    await saveGroup();
+    return;
+  }
+
+  await saveShortcut();
 }
 
 async function importShortcuts() {
@@ -250,8 +417,10 @@ async function importShortcuts() {
       return;
     }
 
-    const list = await getShortcuts();
-    const existingKeywords = new Set(list.map((entry) => entry.keyword));
+    const incomingGroups = Array.isArray(parsed?.groups) ? parsed.groups : [];
+    const [list, savedGroups] = await Promise.all([getShortcuts(), getGroups()]);
+    const existingKeys = new Set(list.map((entry) => getShortcutKey(entry)));
+    const groups = new Set(mergeGroups(savedGroups, incomingGroups, getGroupsFromShortcuts(list)));
     let addedCount = 0;
     let skippedCount = 0;
 
@@ -261,16 +430,22 @@ async function importShortcuts() {
         skippedCount += 1;
         return;
       }
-      if (existingKeywords.has(normalized.keyword)) {
+
+      const shortcutKey = getShortcutKey(normalized);
+      if (existingKeys.has(shortcutKey)) {
         skippedCount += 1;
         return;
       }
+
       list.push(normalized);
-      existingKeywords.add(normalized.keyword);
+      existingKeys.add(shortcutKey);
+      if (normalized.group) {
+        groups.add(normalized.group);
+      }
       addedCount += 1;
     });
 
-    await setShortcuts(list);
+    await Promise.all([setShortcuts(list), setGroups([...groups])]);
     showToast(`Imported ${addedCount} shortcut(s), skipped ${skippedCount}.`);
     elements.importFile.value = "";
     await refreshList();
@@ -280,12 +455,13 @@ async function importShortcuts() {
 }
 
 async function exportShortcuts() {
-  const list = await getShortcuts();
+  const [list, groups] = await Promise.all([getShortcuts(), getGroups()]);
   const manifest = chrome.runtime.getManifest();
   const exportData = {
     name: manifest.name,
     version: manifest.version,
     exportedAt: new Date().toISOString(),
+    groups,
     shortcuts: list
   };
   const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
@@ -302,18 +478,25 @@ async function resetShortcuts() {
   const confirmed = window.confirm("Reset to default shortcuts? This replaces your current list.");
   if (!confirmed) return;
 
-  await setShortcuts(DEFAULT_SHORTCUTS);
+  await Promise.all([setShortcuts(DEFAULT_SHORTCUTS), setGroups([])]);
   resetForm();
   showToast("Defaults restored!");
   await refreshList();
 }
 
 async function init() {
-  const list = await getShortcuts();
+  let list = await getShortcuts();
   if (!list.length) {
     await setShortcuts(DEFAULT_SHORTCUTS);
+    list = DEFAULT_SHORTCUTS;
   }
+
+  const savedGroups = await getGroups();
+  const mergedGroups = mergeGroups(savedGroups, getGroupsFromShortcuts(list));
+  await setGroups(mergedGroups);
+
   await refreshList();
+  resetForm();
 }
 
 // Event listeners
@@ -325,6 +508,56 @@ elements.cancelBtn.addEventListener("click", () => {
 elements.importBtn.addEventListener("click", importShortcuts);
 elements.exportBtn.addEventListener("click", exportShortcuts);
 elements.resetBtn.addEventListener("click", resetShortcuts);
+
+function activateMode(mode, options = {}) {
+  const { fromKeyboard = false } = options;
+  const nextMode = mode === MODE_GROUP ? MODE_GROUP : MODE_SHORTCUT;
+  if (nextMode === currentMode) return;
+
+  if (nextMode === MODE_GROUP && currentEditIndex !== null) {
+    currentEditIndex = null;
+    showToast("Shortcut edit canceled.", "info");
+  }
+
+  setSelectedMode(nextMode);
+  if (fromKeyboard) {
+    const activeTab = elements.modeTabs.find((tab) => tab.dataset.mode === nextMode);
+    activeTab?.focus();
+  }
+}
+
+elements.modeTabs.forEach((tab, index) => {
+  tab.addEventListener("click", () => {
+    activateMode(tab.dataset.mode);
+  });
+
+  tab.addEventListener("keydown", (event) => {
+    const lastIndex = elements.modeTabs.length - 1;
+    let targetIndex = -1;
+
+    if (event.key === "ArrowRight") {
+      targetIndex = index === lastIndex ? 0 : index + 1;
+    } else if (event.key === "ArrowLeft") {
+      targetIndex = index === 0 ? lastIndex : index - 1;
+    } else if (event.key === "Home") {
+      targetIndex = 0;
+    } else if (event.key === "End") {
+      targetIndex = lastIndex;
+    } else if (event.key === "Enter" || event.key === " ") {
+      activateMode(tab.dataset.mode, { fromKeyboard: true });
+      event.preventDefault();
+      return;
+    }
+
+    if (targetIndex !== -1) {
+      const targetTab = elements.modeTabs[targetIndex];
+      if (targetTab) {
+        activateMode(targetTab.dataset.mode, { fromKeyboard: true });
+      }
+      event.preventDefault();
+    }
+  });
+});
 
 // Search filter
 elements.searchInput.addEventListener("input", refreshList);

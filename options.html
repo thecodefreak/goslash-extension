@@ -17,7 +17,7 @@
             </svg>
             <h1>GoSlash</h1>
           </div>
-          <p>Jump fast with address bar shortcuts like <strong>go fb</strong> or <strong>go gh/openai</strong>. Type <strong>go /</strong> to open these settings.</p>
+          <p>Jump fast with address bar shortcuts like <strong>go fb</strong>, <strong>go council/tax</strong>, or <strong>go gh/openai</strong>. Type <strong>go /</strong> to open these settings.</p>
         </div>
         <div class="hero-chip">Keyword: <span>go</span></div>
       </header>
@@ -26,19 +26,66 @@
         <h2>Add or edit shortcut</h2>
         <form id="shortcut-form" class="form">
           <div class="field">
-            <label for="keyword">Keyword</label>
-            <input id="keyword" name="keyword" type="text" placeholder="fb" autocomplete="off" />
-            <small>Lowercase letters, numbers, dash, or underscore. No slashes.</small>
+            <label>Mode</label>
+            <div class="mode-toggle" role="tablist" aria-label="Form mode">
+              <button
+                id="mode-tab-shortcut"
+                class="mode-tab"
+                type="button"
+                role="tab"
+                data-mode="shortcut"
+                aria-selected="true"
+                aria-controls="shortcut-fields"
+                tabindex="0"
+              >
+                Shortcut
+              </button>
+              <button
+                id="mode-tab-group"
+                class="mode-tab"
+                type="button"
+                role="tab"
+                data-mode="group"
+                aria-selected="false"
+                aria-controls="group-fields"
+                tabindex="-1"
+              >
+                Group
+              </button>
+            </div>
+            <small>Shortcut mode adds entries. Group mode only creates groups.</small>
           </div>
-          <div class="field">
-            <label for="url">Target URL</label>
-            <input id="url" name="url" type="text" placeholder="facebook.com" autocomplete="off" />
-            <small>Use <code>{path}</code> and <code>{query}</code> for dynamic parts.</small>
+
+          <div id="shortcut-fields" class="grouped-fields" role="tabpanel" aria-labelledby="mode-tab-shortcut">
+            <div class="field">
+              <label for="shortcut-group">Group (optional)</label>
+              <select id="shortcut-group" name="shortcut-group"></select>
+              <small>Select a group to create shortcuts like <code>council/tax</code>.</small>
+            </div>
+            <div class="field">
+              <label for="keyword">Keyword</label>
+              <input id="keyword" name="keyword" type="text" placeholder="fb" autocomplete="off" />
+              <small>Lowercase letters, numbers, dash, or underscore.</small>
+            </div>
+            <div class="field">
+              <label for="url">Target URL</label>
+              <input id="url" name="url" type="text" placeholder="facebook.com" autocomplete="off" />
+              <small>Use <code>{path}</code> and <code>{query}</code> for dynamic parts.</small>
+            </div>
+            <div class="field">
+              <label for="title">Title (optional)</label>
+              <input id="title" name="title" type="text" placeholder="Facebook" autocomplete="off" />
+            </div>
           </div>
-          <div class="field">
-            <label for="title">Title (optional)</label>
-            <input id="title" name="title" type="text" placeholder="Facebook" autocomplete="off" />
+
+          <div id="group-fields" class="grouped-fields" role="tabpanel" aria-labelledby="mode-tab-group" hidden>
+            <div class="field">
+              <label for="group-name">Group name</label>
+              <input id="group-name" name="group-name" type="text" placeholder="council" autocomplete="off" />
+              <small>Create the group first, then switch back to Shortcut mode to add entries under it.</small>
+            </div>
           </div>
+
           <div class="actions">
             <button id="save-btn" type="submit">Save shortcut</button>
             <button id="cancel-btn" type="button" class="ghost" hidden>Cancel edit</button>
@@ -49,7 +96,7 @@
       <section class="card">
         <div class="card-header">
           <h2>Your shortcuts</h2>
-          <p>Examples: <strong>go fb</strong>, <strong>go gh/openai</strong>, <strong>go g gpt 5.2</strong></p>
+          <p>Examples: <strong>go fb</strong>, <strong>go council/tax</strong>, <strong>go gh/openai</strong>, <strong>go g gpt 5.2</strong></p>
         </div>
         <div class="filter-row">
           <input type="text" id="search-input" placeholder="Filter shortcuts..." autocomplete="off" />
@@ -62,7 +109,7 @@
           <table>
             <thead>
               <tr>
-                <th>Keyword</th>
+                <th>Shortcut</th>
                 <th>URL</th>
                 <th>Title</th>
                 <th id="usage-header" class="usage-col sortable" hidden>Usage</th>
@@ -87,7 +134,7 @@
             <button id="reset-btn" class="danger" type="button">Reset to defaults</button>
           </div>
         </div>
-        <p class="hint">Import merges without duplicates. Existing keywords are preserved.</p>
+        <p class="hint">Import merges without duplicates. Existing shortcuts are preserved.</p>
       </section>
     </main>
 

@@ -140,6 +140,7 @@ label {
 }
 
 input[type="text"],
+select,
 input[type="file"] {
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -149,9 +150,71 @@ input[type="file"] {
   color: var(--ink);
 }
 
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) calc(1em + 2px), calc(100% - 11px) calc(1em + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
+}
+
 small {
   color: var(--muted);
   font-size: 12px;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mode-tab {
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mode-tab:hover {
+  background: var(--ghost-hover);
+}
+
+.mode-tab[aria-selected="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.mode-tab[aria-selected="true"]:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+.mode-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.grouped-fields {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-alt);
+}
+
+.grouped-fields[hidden] {
+  display: none !important;
 }
 
 .actions,
