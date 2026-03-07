@@ -38,6 +38,11 @@ const TOAST_ICONS = {
   info: `<svg viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>`
 };
 
+const ACTION_ICONS = {
+  edit: `<svg class="ui-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M4.75 14.5v.75h.75l7.97-7.97-.75-.75L4.75 14.5Zm9.53-9.53.75.75.47-.47a1.06 1.06 0 0 0-1.5-1.5l-.47.47Z" fill="currentColor"/></svg>`,
+  delete: `<svg class="ui-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M6.25 6.25h7.5M8 6.25V5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.25m-4.25 0-.5 8a1 1 0 0 0 1 .99h3.5a1 1 0 0 0 1-.99l-.5-8" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+};
+
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
@@ -246,14 +251,14 @@ function render(list, usageStats = {}, filterText = "") {
     const actionsCell = document.createElement("td");
     const editBtn = document.createElement("button");
     editBtn.type = "button";
-    editBtn.textContent = "Edit";
-    editBtn.className = "ghost";
+    editBtn.className = "ghost icon-label";
+    editBtn.innerHTML = `${ACTION_ICONS.edit}<span>Edit</span>`;
     editBtn.addEventListener("click", () => startEdit(index, entry));
 
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.textContent = "Delete";
-    deleteBtn.className = "danger";
+    deleteBtn.className = "danger icon-label";
+    deleteBtn.innerHTML = `${ACTION_ICONS.delete}<span>Delete</span>`;
     deleteBtn.addEventListener("click", () => removeShortcut(index));
 
     actionsCell.appendChild(editBtn);

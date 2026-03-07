@@ -204,6 +204,18 @@ small {
   outline-offset: 2px;
 }
 
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ui-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
 .grouped-fields {
   display: grid;
   gap: 14px;
