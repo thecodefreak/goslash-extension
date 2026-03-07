@@ -278,6 +278,34 @@ table {
   min-width: 680px;
 }
 
+.groups-table {
+  min-width: 460px;
+}
+
+.group-table-wrap {
+  max-height: 280px;
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.group-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 thead {
   background: var(--surface-alt);
 }

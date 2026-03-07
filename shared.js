@@ -81,6 +81,12 @@ function getUsageStats() {
   });
 }
 
+function setUsageStats(stats) {
+  return new Promise((resolve) => {
+    chrome.storage.sync.set({ [USAGE_KEY]: stats || {} }, () => resolve());
+  });
+}
+
 function incrementUsage(keyword) {
   return getUsageStats().then((stats) => {
     stats[keyword] = (stats[keyword] || 0) + 1;

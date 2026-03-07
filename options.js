@@ -10,11 +10,13 @@ const elements = {
   groupFields: document.getElementById("group-fields"),
   shortcutGroup: document.getElementById("shortcut-group"),
   groupName: document.getElementById("group-name"),
+  groupsList: document.getElementById("groups-list"),
   keyword: document.getElementById("keyword"),
   url: document.getElementById("url"),
   title: document.getElementById("title"),
   saveBtn: document.getElementById("save-btn"),
   cancelBtn: document.getElementById("cancel-btn"),
+  groupCancelBtn: document.getElementById("group-cancel-btn"),
   list: document.getElementById("shortcuts-list"),
   importFile: document.getElementById("import-file"),
   importBtn: document.getElementById("import-btn"),
@@ -27,6 +29,7 @@ const elements = {
 };
 
 let currentEditIndex = null;
+let currentGroupEditName = null;
 let currentMode = MODE_SHORTCUT;
 let showUsageStats = false;
 let sortByUsage = false;
@@ -88,6 +91,14 @@ function mergeGroups(...groupsLists) {
   return [...new Set(groupsLists.flat().map((group) => normalizeSegment(group)).filter(Boolean))].sort();
 }
 
+function clearGroupEditState(options = {}) {
+  const { clearInput = false } = options;
+  currentGroupEditName = null;
+  if (clearInput) {
+    elements.groupName.value = "";
+  }
+}
+
 function updateModeUI() {
   const mode = getSelectedMode();
   const isGroupMode = mode === MODE_GROUP;
@@ -97,9 +108,10 @@ function updateModeUI() {
   elements.shortcutFields.setAttribute("aria-hidden", isGroupMode ? "true" : "false");
   elements.groupFields.setAttribute("aria-hidden", isGroupMode ? "false" : "true");
   elements.cancelBtn.hidden = isGroupMode || currentEditIndex === null;
+  elements.groupCancelBtn.hidden = !isGroupMode || currentGroupEditName === null;
 
   if (isGroupMode) {
-    elements.saveBtn.textContent = "Save group";
+    elements.saveBtn.textContent = currentGroupEditName ? "Update group" : "Save group";
   } else if (currentEditIndex !== null) {
     elements.saveBtn.textContent = "Update shortcut";
   } else {
@@ -130,6 +142,82 @@ function syncGroupOptions(groups) {
   }
 }
 
+function getGroupUsageMap(list) {
+  const counts = {};
+  list.forEach((entry) => {
+    const group = getShortcutGroup(entry);
+    if (!group) return;
+    counts[group] = (counts[group] || 0) + 1;
+  });
+  return counts;
+}
+
+function hasDuplicateShortcutKeys(list) {
+  const seen = new Set();
+  for (const entry of list) {
+    const key = getShortcutKey(entry);
+    if (!key) continue;
+    if (seen.has(key)) return key;
+    seen.add(key);
+  }
+  return "";
+}
+
+function renderGroups(groups, groupUsageMap) {
+  elements.groupsList.innerHTML = "";
+
+  if (!groups.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 3;
+    cell.textContent = "No groups yet. Create one above.";
+    row.appendChild(cell);
+    elements.groupsList.appendChild(row);
+    return;
+  }
+
+  groups.forEach((group) => {
+    const row = document.createElement("tr");
+
+    const nameCell = document.createElement("td");
+    nameCell.textContent = group;
+
+    const countCell = document.createElement("td");
+    const countBadge = document.createElement("span");
+    countBadge.className = "group-count";
+    countBadge.textContent = String(groupUsageMap[group] || 0);
+    countCell.appendChild(countBadge);
+
+    const actionsCell = document.createElement("td");
+    actionsCell.className = "group-actions";
+
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "ghost icon-label";
+    editBtn.innerHTML = `${ACTION_ICONS.edit}<span>Edit</span>`;
+    editBtn.addEventListener("click", () => {
+      startGroupEdit(group);
+    });
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "danger icon-label";
+    deleteBtn.innerHTML = `${ACTION_ICONS.delete}<span>Delete</span>`;
+    deleteBtn.addEventListener("click", () => {
+      deleteGroup(group);
+    });
+
+    actionsCell.appendChild(editBtn);
+    actionsCell.appendChild(deleteBtn);
+
+    row.appendChild(nameCell);
+    row.appendChild(countCell);
+    row.appendChild(actionsCell);
+
+    elements.groupsList.appendChild(row);
+  });
+}
+
 function clearShortcutInputs() {
   elements.shortcutGroup.value = "";
   elements.keyword.value = "";
@@ -142,7 +230,7 @@ function resetForm(options = {}) {
 
   elements.form.reset();
   currentEditIndex = null;
-  elements.groupName.value = "";
+  clearGroupEditState({ clearInput: true });
   clearShortcutInputs();
   setSelectedMode(mode);
 }
@@ -291,10 +379,20 @@ async function refreshList() {
   ]);
 
   const allGroups = mergeGroups(savedGroups, getGroupsFromShortcuts(list));
+  const groupUsageMap = getGroupUsageMap(list);
   syncGroupOptions(allGroups);
+  renderGroups(allGroups, groupUsageMap);
 
   const filterText = elements.searchInput.value.trim();
   render(list, usageStats, filterText);
+}
+
+function startGroupEdit(group) {
+  currentGroupEditName = group;
+  setSelectedMode(MODE_GROUP);
+  elements.groupName.value = group;
+  elements.groupName.focus({ preventScroll: true });
+  elements.groupName.select();
 }
 
 function startEdit(index, entry) {
@@ -332,22 +430,107 @@ async function removeShortcut(index) {
 }
 
 async function saveGroup() {
-  const group = normalizeSegment(elements.groupName.value);
-  if (!group || !KEYWORD_PATTERN.test(group)) {
+  const nextName = normalizeSegment(elements.groupName.value);
+  if (!nextName || !KEYWORD_PATTERN.test(nextName)) {
     showToast("Enter a valid group name.", "error");
     return;
   }
 
   const [savedGroups, shortcuts] = await Promise.all([getGroups(), getShortcuts()]);
   const allGroups = mergeGroups(savedGroups, getGroupsFromShortcuts(shortcuts));
-  if (allGroups.includes(group)) {
+  if (!currentGroupEditName) {
+    if (allGroups.includes(nextName)) {
+      showToast("That group already exists.", "error");
+      return;
+    }
+
+    await setGroups([...savedGroups, nextName]);
+    elements.groupName.value = "";
+    showToast("Group saved!");
+    await refreshList();
+    return;
+  }
+
+  const oldName = currentGroupEditName;
+  if (!allGroups.includes(oldName)) {
+    clearGroupEditState({ clearInput: true });
+    updateModeUI();
+    showToast("Group no longer exists.", "error");
+    await refreshList();
+    return;
+  }
+
+  if (nextName !== oldName && allGroups.includes(nextName)) {
     showToast("That group already exists.", "error");
     return;
   }
 
-  await setGroups([...savedGroups, group]);
-  elements.groupName.value = "";
-  showToast("Group saved!");
+  if (nextName === oldName) {
+    clearGroupEditState({ clearInput: true });
+    updateModeUI();
+    showToast("No changes made.", "info");
+    return;
+  }
+
+  const renamedShortcuts = shortcuts.map((entry) => {
+    if (getShortcutGroup(entry) !== oldName) return entry;
+    return { ...entry, group: nextName };
+  });
+
+  const duplicateKey = hasDuplicateShortcutKeys(renamedShortcuts);
+  if (duplicateKey) {
+    showToast(`Rename would duplicate shortcut: ${duplicateKey}`, "error");
+    return;
+  }
+
+  const usageStats = await getUsageStats();
+  const changedShortcuts = shortcuts.filter((entry) => getShortcutGroup(entry) === oldName);
+  changedShortcuts.forEach((entry) => {
+    const oldKey = getShortcutKey(entry);
+    const newKey = `${nextName}/${entry.keyword}`;
+    if (oldKey === newKey) return;
+    if (!Object.prototype.hasOwnProperty.call(usageStats, oldKey)) return;
+    usageStats[newKey] = (usageStats[newKey] || 0) + usageStats[oldKey];
+    delete usageStats[oldKey];
+  });
+
+  const updatedGroups = allGroups.map((group) => (group === oldName ? nextName : group));
+  await Promise.all([
+    setShortcuts(renamedShortcuts),
+    setGroups(updatedGroups),
+    setUsageStats(usageStats)
+  ]);
+
+  clearGroupEditState({ clearInput: true });
+  updateModeUI();
+  showToast("Group updated. Linked shortcuts were renamed.");
+  await refreshList();
+}
+
+async function deleteGroup(group) {
+  const [savedGroups, shortcuts] = await Promise.all([getGroups(), getShortcuts()]);
+  const linkedCount = shortcuts.filter((entry) => getShortcutGroup(entry) === group).length;
+
+  if (linkedCount > 0) {
+    showToast("Cannot delete group with linked shortcuts.", "error");
+    return;
+  }
+
+  if (!savedGroups.includes(group)) {
+    showToast("Group no longer exists.", "error");
+    await refreshList();
+    return;
+  }
+
+  const nextGroups = savedGroups.filter((item) => item !== group);
+  await setGroups(nextGroups);
+
+  if (currentGroupEditName === group) {
+    clearGroupEditState({ clearInput: true });
+    updateModeUI();
+  }
+
+  showToast("Group deleted.");
   await refreshList();
 }
 
@@ -513,6 +696,11 @@ elements.cancelBtn.addEventListener("click", () => {
   resetForm();
   showToast("Edit canceled.", "info");
 });
+elements.groupCancelBtn.addEventListener("click", () => {
+  clearGroupEditState({ clearInput: true });
+  updateModeUI();
+  showToast("Group edit canceled.", "info");
+});
 elements.importBtn.addEventListener("click", importShortcuts);
 elements.exportBtn.addEventListener("click", exportShortcuts);
 elements.resetBtn.addEventListener("click", resetShortcuts);
@@ -525,6 +713,9 @@ function activateMode(mode, options = {}) {
   if (nextMode === MODE_GROUP && currentEditIndex !== null) {
     currentEditIndex = null;
     showToast("Shortcut edit canceled.", "info");
+  }
+  if (nextMode === MODE_SHORTCUT && currentGroupEditName !== null) {
+    clearGroupEditState({ clearInput: true });
   }
 
   setSelectedMode(nextMode);

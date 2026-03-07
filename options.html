@@ -102,13 +102,30 @@
             <div class="field">
               <label for="group-name">Group name</label>
               <input id="group-name" name="group-name" type="text" placeholder="council" autocomplete="off" />
-              <small>Create the group first, then switch back to Shortcut mode to add entries under it.</small>
+              <small>Create, rename, or delete groups here. Renaming updates linked shortcuts automatically.</small>
+            </div>
+            <div class="field">
+              <label>Groups</label>
+              <div class="table-wrap group-table-wrap">
+                <table class="groups-table">
+                  <thead>
+                    <tr>
+                      <th>Group</th>
+                      <th>Linked shortcuts</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="groups-list"></tbody>
+                </table>
+              </div>
+              <small>Delete is blocked when a group has linked shortcuts.</small>
             </div>
           </div>
 
           <div class="actions">
             <button id="save-btn" type="submit">Save shortcut</button>
             <button id="cancel-btn" type="button" class="ghost" hidden>Cancel edit</button>
+            <button id="group-cancel-btn" type="button" class="ghost" hidden>Cancel group edit</button>
           </div>
           </form>
       </section>
