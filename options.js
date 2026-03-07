@@ -305,6 +305,9 @@ function startEdit(index, entry) {
   elements.url.value = entry.url;
   elements.title.value = entry.title || "";
   updateModeUI();
+  elements.form.scrollIntoView({ behavior: "smooth", block: "start" });
+  elements.keyword.focus({ preventScroll: true });
+  elements.keyword.select();
   showToast("Editing shortcut. Update fields and save.", "info");
 }
 
