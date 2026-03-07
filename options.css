@@ -414,10 +414,40 @@ td code {
 }
 
 /* Usage cell */
+.usage-col {
+  opacity: 0;
+  max-width: 0;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  border-bottom-color: transparent;
+  transition:
+    opacity 150ms ease,
+    max-width 150ms ease,
+    padding-left 150ms ease,
+    padding-right 150ms ease,
+    border-bottom-color 150ms ease;
+}
+
+table.usage-visible .usage-col {
+  opacity: 1;
+  max-width: 140px;
+  padding-left: 12px;
+  padding-right: 12px;
+  border-bottom-color: var(--border);
+}
+
 .usage-cell {
   white-space: nowrap;
   color: var(--muted);
   font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .usage-col {
+    transition: none;
+  }
 }
 
 @media (max-width: 720px) {

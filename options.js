@@ -23,6 +23,13 @@ async function refreshList() {
   renderShortcuts(list, usageStats, el.searchInput.value.trim());
 }
 
+function applyUsageColumnState() {
+  const table = el.usageHeader?.closest("table");
+  if (!table) return;
+  table.classList.toggle("usage-visible", state.showUsageStats);
+  el.usageHeader.hidden = false;
+}
+
 setShortcutRefreshHandler(refreshList);
 setGroupRefreshHandler(refreshList);
 
@@ -88,10 +95,10 @@ el.searchInput.addEventListener("input", refreshList);
 
 el.showUsage.addEventListener("change", () => {
   state.showUsageStats = el.showUsage.checked;
-  el.usageHeader.hidden = !state.showUsageStats;
   if (!state.showUsageStats) {
     state.sortByUsage = false;
   }
+  applyUsageColumnState();
   refreshList();
 });
 
@@ -107,4 +114,5 @@ el.usageHeader.addEventListener("click", () => {
 
 await initializeOptionsData();
 await refreshList();
+applyUsageColumnState();
 resetForm();

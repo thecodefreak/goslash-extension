@@ -51,7 +51,6 @@ export function getUsageCount(usageStats, entry) {
 }
 
 function updateSortArrow() {
-  if (!state.showUsageStats) return;
   const arrow = state.sortByUsage ? (state.sortDescending ? " \u25BC" : " \u25B2") : "";
   el.usageHeader.textContent = "Usage" + arrow;
 }
@@ -82,7 +81,7 @@ export function renderShortcuts(list, usageStats = {}, filterText = "") {
   if (!filtered.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = state.showUsageStats ? 5 : 4;
+    cell.colSpan = 5;
     cell.textContent = filterText ? "No shortcuts match your filter." : "No shortcuts yet. Add one above.";
     row.appendChild(cell);
     el.list.appendChild(row);
@@ -125,14 +124,11 @@ export function renderShortcuts(list, usageStats = {}, filterText = "") {
     row.appendChild(shortcutCell);
     row.appendChild(urlCell);
     row.appendChild(titleCell);
-
-    if (state.showUsageStats) {
-      const usageCell = document.createElement("td");
-      usageCell.className = "usage-cell usage-col";
-      const count = getUsageCount(usageStats, entry);
-      usageCell.textContent = count === 1 ? "1 use" : `${count} uses`;
-      row.appendChild(usageCell);
-    }
+    const usageCell = document.createElement("td");
+    usageCell.className = "usage-cell usage-col";
+    const count = getUsageCount(usageStats, entry);
+    usageCell.textContent = count === 1 ? "1 use" : `${count} uses`;
+    row.appendChild(usageCell);
 
     row.appendChild(actionsCell);
     el.list.appendChild(row);
