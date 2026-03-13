@@ -96,8 +96,10 @@ export function renderShortcuts(list, usageStats = {}, filterText = "") {
     shortcutCell.textContent = getShortcutKey(entry);
 
     const urlCell = document.createElement("td");
+    urlCell.className = "url-col";
     const urlCode = document.createElement("code");
     urlCode.textContent = entry.url;
+    urlCode.title = entry.url;
     urlCell.appendChild(urlCode);
 
     const titleCell = document.createElement("td");

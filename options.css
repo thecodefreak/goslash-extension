@@ -324,6 +324,17 @@ td code {
   border-radius: 6px;
 }
 
+.url-col {
+  max-width: 260px;
+}
+
+.url-col code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .utility-row {
   display: flex;
   justify-content: space-between;
