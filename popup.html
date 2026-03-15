@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GoSlash</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="popup">
+      <header class="popup-header">
+        <div class="popup-brand">
+          <svg class="popup-logo" width="22" height="22" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="32" height="32" rx="8" fill="currentColor"/>
+            <path d="M20 8L12 24" stroke="white" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+          <span class="popup-title">GoSlash</span>
+        </div>
+        <a id="open-options" href="options.html" target="_blank" class="options-link" title="Open full settings">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M10 3.5a.75.75 0 0 1 .75.75v.6a4.5 4.5 0 0 1 1.6.66l.42-.42a.75.75 0 1 1 1.06 1.06l-.42.42c.3.49.51 1.03.63 1.6h.6a.75.75 0 0 1 0 1.5h-.6a4.5 4.5 0 0 1-.63 1.6l.42.42a.75.75 0 1 1-1.06 1.06l-.42-.42a4.5 4.5 0 0 1-1.6.63v.6a.75.75 0 0 1-1.5 0v-.6a4.5 4.5 0 0 1-1.6-.63l-.42.42a.75.75 0 1 1-1.06-1.06l.42-.42A4.5 4.5 0 0 1 5.5 9.75h-.6a.75.75 0 0 1 0-1.5h.6c.12-.57.33-1.11.63-1.6l-.42-.42A.75.75 0 1 1 6.77 5.17l.42.42a4.5 4.5 0 0 1 1.6-.66v-.6A.75.75 0 0 1 10 3.5Zm0 3.5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" fill="currentColor"/>
+          </svg>
+        </a>
+      </header>
+
+      <div id="tab-preview" class="tab-preview">
+        <svg class="tab-favicon-placeholder" width="14" height="14" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="2" y="4" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/>
+          <path d="M2 7h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <span id="tab-title-preview" class="tab-title-preview">Loading...</span>
+      </div>
+
+      <form id="popup-form" class="popup-form">
+        <div class="field">
+          <label for="p-keyword">Shortcut keyword</label>
+          <input id="p-keyword" type="text" placeholder="e.g. fb" autocomplete="off" spellcheck="false" />
+          <small>Lowercase letters, numbers, dash, or underscore.</small>
+        </div>
+        <div class="field">
+          <label for="p-url">URL</label>
+          <input id="p-url" type="text" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field">
+          <label for="p-title">Title <span class="optional">(optional)</span></label>
+          <input id="p-title" type="text" placeholder="e.g. Facebook" autocomplete="off" />
+        </div>
+        <div class="popup-actions">
+          <button id="save-btn" type="submit">Save shortcut</button>
+        </div>
+      </form>
+
+      <div id="popup-status" class="popup-status" hidden></div>
+    </div>
+
+    <script src="shared.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

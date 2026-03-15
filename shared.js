@@ -36,6 +36,28 @@ function ensureScheme(url) {
   return `https://${url}`;
 }
 
+function normalizeEntry(entry) {
+  let group = normalizeSegment(entry.group || "");
+  let keyword = normalizeSegment(entry.keyword || "");
+  const url = (entry.url || "").trim();
+  const title = (entry.title || "").trim();
+
+  if (!group && keyword.includes("/")) {
+    const parts = keyword.split("/").filter(Boolean);
+    if (parts.length === 2) {
+      [group, keyword] = parts;
+    }
+  }
+
+  if (group && !KEYWORD_PATTERN.test(group)) return null;
+  if (!keyword || !KEYWORD_PATTERN.test(keyword)) return null;
+  if (!url) return null;
+
+  const normalized = { keyword, url: ensureScheme(url), title: title || "" };
+  if (group) normalized.group = group;
+  return normalized;
+}
+
 function getShortcuts() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(STORAGE_KEY, (data) => {

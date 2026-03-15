@@ -1,0 +1,219 @@
+:root {
+  color-scheme: light dark;
+  --ink: #1f2430;
+  --muted: #5d667a;
+  --surface: #ffffff;
+  --surface-alt: #f5f6fa;
+  --accent: #1b6bff;
+  --accent-strong: #1147b7;
+  --border: #dde2ee;
+  --danger: #c82a39;
+  --input-bg: #fbfcff;
+  --ghost-hover: #e9eefb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e4e8f0;
+    --muted: #9ca3b4;
+    --surface: #1a1c23;
+    --surface-alt: #252830;
+    --accent: #4d8eff;
+    --accent-strong: #6ba1ff;
+    --border: #3a3f4b;
+    --danger: #e94857;
+    --input-bg: #22252e;
+    --ghost-hover: #2d323e;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+  font-family: "Avenir Next", "Nunito", "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+/* Header */
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.popup-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.popup-logo {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.popup-title {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.options-link {
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+
+.options-link:hover {
+  color: var(--accent);
+  background: var(--ghost-hover);
+}
+
+/* Current tab preview */
+.tab-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.tab-favicon-placeholder {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.tab-title-preview {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Form */
+.popup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.optional {
+  font-weight: normal;
+  color: var(--muted);
+}
+
+input[type="text"] {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--ink);
+  width: 100%;
+  font-family: inherit;
+}
+
+input[type="text"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
+small {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.popup-actions {
+  margin-top: 2px;
+}
+
+button[type="submit"] {
+  width: 100%;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 16px;
+  background: var(--accent);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+button[type="submit"]:hover {
+  background: var(--accent-strong);
+}
+
+button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Status message */
+.popup-status {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.popup-status.success {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.popup-status.error {
+  background: #fff1f2;
+  color: var(--danger);
+  border: 1px solid #fecdd3;
+}
+
+@media (prefers-color-scheme: dark) {
+  .popup-status.success {
+    background: #14290e;
+    color: #4ade80;
+    border-color: #166534;
+  }
+
+  .popup-status.error {
+    background: #2a0a0d;
+    color: #f87171;
+    border-color: #7f1d1d;
+  }
+}

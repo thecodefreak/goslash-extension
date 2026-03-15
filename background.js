@@ -206,7 +206,3 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
 });
 
-// Open options page when toolbar icon is clicked
-chrome.action.onClicked.addListener(() => {
-  chrome.runtime.openOptionsPage();
-});
