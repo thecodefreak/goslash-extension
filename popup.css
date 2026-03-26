@@ -145,6 +145,23 @@ input[type="text"] {
   font-family: inherit;
 }
 
+select {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-size: 14px;
+  background: var(--input-bg);
+  color: var(--ink);
+  width: 100%;
+  font-family: inherit;
+}
+
+select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+  border-color: transparent;
+}
+
 input[type="text"]:focus {
   outline: 2px solid var(--accent);
   outline-offset: -1px;

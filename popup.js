@@ -2,9 +2,26 @@ const form = document.getElementById("popup-form");
 const keywordInput = document.getElementById("p-keyword");
 const urlInput = document.getElementById("p-url");
 const titleInput = document.getElementById("p-title");
+const groupSelect = document.getElementById("p-group");
+const groupField = document.getElementById("p-group-field");
 const saveBtn = document.getElementById("save-btn");
 const statusEl = document.getElementById("popup-status");
 const tabTitlePreview = document.getElementById("tab-title-preview");
+
+getGroups().then((groups) => {
+  if (!groups.length) return;
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = "No group";
+  groupSelect.appendChild(none);
+  groups.forEach((g) => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    groupSelect.appendChild(opt);
+  });
+  groupField.hidden = false;
+});
 
 chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
   if (tab?.url?.startsWith("chrome-extension://")) {
@@ -31,7 +48,8 @@ form.addEventListener("submit", async (e) => {
   const normalized = normalizeEntry({
     keyword: keywordInput.value,
     url: urlInput.value,
-    title: titleInput.value
+    title: titleInput.value,
+    group: groupSelect.value
   });
 
   if (!normalized) {
