@@ -200,6 +200,23 @@ button[type="submit"]:disabled {
   cursor: default;
 }
 
+/* Footer */
+.popup-footer {
+  text-align: center;
+  padding-top: 2px;
+}
+
+.feedback-link {
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.feedback-link:hover {
+  color: var(--accent);
+}
+
 /* Status message */
 .popup-status {
   font-size: 13px;
