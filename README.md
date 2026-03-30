@@ -38,6 +38,12 @@ GoSlash is a Chrome extension that lets you jump to sites using short keywords f
 
 ## Features
 
+### Quick Add from Popup
+Click the GoSlash toolbar icon to instantly save the current tab as a shortcut:
+- URL and title are pre-filled from the active tab.
+- Enter a keyword and hit Save — done.
+- Opening the popup while already on the settings page redirects straight to settings instead.
+
 ### Add and Edit Shortcuts
 Open the extension options page (`go /`) to add, edit, or delete shortcuts.
 
@@ -92,16 +98,28 @@ GoSlash stores all data locally using Chrome's sync storage. No data is sent to 
 ## Permissions
 
 - **storage**: Required to save and sync your shortcuts across devices.
+- **tabs**: To read the current tab's URL and title when saving a shortcut from the popup.
 
 ## Development Notes
 
-The options page script is split into focused modules:
+No build step or external dependencies — plain JS loaded directly by the browser.
+
+**Shared layer (classic scripts, globals)**
+- `shared.js` - storage helpers, normalization, `normalizeEntry`, constants. Used by both `background.js` (via `importScripts`) and UI pages.
+
+**Popup**
+- `popup.js` / `popup.html` / `popup.css` - quick-add flow, reads current tab, saves via shared globals.
+
+**Options page (ES modules)**
 - `options/state.js` - shared UI state, DOM references, constants.
 - `options/ui.js` - mode tabs, toasts, and common UI behavior.
 - `options/shortcuts.js` - shortcut rendering and shortcut CRUD/import/export/reset.
 - `options/groups.js` - group list rendering and group CRUD rules.
 - `options/data.js` - storage load/init helpers.
 - `options.js` - entrypoint and event wiring.
+
+**Background**
+- `background.js` - service worker; handles omnibox input, navigation, and install defaults.
 
 ## License
 
