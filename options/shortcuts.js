@@ -26,7 +26,152 @@ function updateSortArrow() {
   el.usageHeader.textContent = "Usage" + arrow;
 }
 
-export function renderShortcuts(list, usageStats = {}, filterText = "") {
+const CHEVRON_SVG = `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+function buildShortcutRow(entry, index, usageStats, groupName) {
+  const row = document.createElement("tr");
+  row.dataset.index = String(index);
+  if (groupName) {
+    row.classList.add("group-item-row");
+    row.dataset.group = groupName;
+  }
+
+  const shortcutCell = document.createElement("td");
+  shortcutCell.textContent = getShortcutKey(entry);
+
+  const urlCell = document.createElement("td");
+  urlCell.className = "url-col";
+  const urlCode = document.createElement("code");
+  urlCode.textContent = entry.url;
+  urlCode.title = entry.url;
+  urlCell.appendChild(urlCode);
+
+  const titleCell = document.createElement("td");
+  titleCell.textContent = entry.title || "-";
+
+  const usageCell = document.createElement("td");
+  usageCell.className = "usage-cell usage-col";
+  const count = getUsageCount(usageStats, entry);
+  usageCell.textContent = count === 1 ? "1 use" : `${count} uses`;
+
+  const actionsCell = document.createElement("td");
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "ghost icon-label";
+  editBtn.innerHTML = `${ACTION_ICONS.edit}<span>Edit</span>`;
+  editBtn.addEventListener("click", () => startShortcutEdit(index, entry));
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "danger icon-label";
+  deleteBtn.innerHTML = `${ACTION_ICONS.delete}<span>Delete</span>`;
+  deleteBtn.addEventListener("click", () => removeShortcut(index));
+
+  actionsCell.appendChild(editBtn);
+  actionsCell.appendChild(deleteBtn);
+  actionsCell.style.display = "flex";
+  actionsCell.style.gap = "8px";
+
+  row.appendChild(shortcutCell);
+  row.appendChild(urlCell);
+  row.appendChild(titleCell);
+  row.appendChild(usageCell);
+  row.appendChild(actionsCell);
+  return row;
+}
+
+const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function animateCollapseRows(rows) {
+  if (!rows.length) return;
+  if (reducedMotion()) {
+    rows.forEach(row => { row.hidden = true; });
+    return;
+  }
+  rows.forEach(row => row.classList.add("row-anim-out"));
+  rows[0].addEventListener("transitionend", (e) => {
+    if (e.propertyName !== "opacity") return;
+    rows.forEach(row => {
+      row.hidden = true;
+      row.classList.remove("row-anim-out");
+    });
+  }, { once: true });
+}
+
+function animateExpandRows(rows) {
+  if (!rows.length) return;
+  if (reducedMotion()) {
+    rows.forEach(row => { row.hidden = false; });
+    return;
+  }
+  rows.forEach(row => {
+    row.hidden = false;
+    row.classList.add("row-anim-start");
+  });
+  rows[0].getBoundingClientRect(); // force reflow so start state is painted
+  rows.forEach(row => row.classList.remove("row-anim-start"));
+}
+
+function buildGroupHeaderRow(groupName, count, isCollapsed) {
+  const row = document.createElement("tr");
+  row.className = "group-header-row";
+  row.dataset.group = groupName;
+
+  const cell = document.createElement("td");
+  cell.colSpan = 5;
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "group-collapse-btn";
+  btn.setAttribute("aria-expanded", String(!isCollapsed));
+  btn.setAttribute("aria-label", `Toggle group ${groupName}`);
+
+  const chevron = document.createElement("span");
+  chevron.className = "chevron-icon" + (isCollapsed ? "" : " expanded");
+  chevron.innerHTML = CHEVRON_SVG;
+
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "group-header-name";
+  nameSpan.textContent = groupName;
+
+  const countBadge = document.createElement("span");
+  countBadge.className = "group-count";
+  countBadge.textContent = String(count);
+
+  btn.appendChild(chevron);
+  btn.appendChild(nameSpan);
+  btn.appendChild(countBadge);
+  cell.appendChild(btn);
+  row.appendChild(cell);
+
+  row.addEventListener("click", () => {
+    const nowCollapsed = !state.collapsedGroups.has(groupName);
+    if (nowCollapsed) {
+      state.collapsedGroups.add(groupName);
+    } else {
+      state.collapsedGroups.delete(groupName);
+    }
+    chevron.classList.toggle("expanded", !nowCollapsed);
+    btn.setAttribute("aria-expanded", String(!nowCollapsed));
+
+    const itemRows = [];
+    let next = row.nextElementSibling;
+    while (next && next.dataset.group === groupName) {
+      itemRows.push(next);
+      next = next.nextElementSibling;
+    }
+
+    if (nowCollapsed) {
+      animateCollapseRows(itemRows);
+    } else {
+      animateExpandRows(itemRows);
+    }
+  });
+
+  return row;
+}
+
+export function renderShortcuts(list, usageStats = {}, filterText = "", groupFilter = "") {
   el.list.innerHTML = "";
 
   let filtered = list.map((entry, index) => ({ entry, index }));
@@ -37,6 +182,10 @@ export function renderShortcuts(list, usageStats = {}, filterText = "") {
       entry.url.toLowerCase().includes(lower) ||
       (entry.title || "").toLowerCase().includes(lower)
     );
+  }
+
+  if (groupFilter) {
+    filtered = filtered.filter(({ entry }) => getShortcutGroup(entry) === groupFilter);
   }
 
   if (state.showUsageStats && state.sortByUsage) {
@@ -53,58 +202,34 @@ export function renderShortcuts(list, usageStats = {}, filterText = "") {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
     cell.colSpan = 5;
-    cell.textContent = filterText ? "No shortcuts match your filter." : "No shortcuts yet. Add one above.";
+    cell.textContent = filterText || groupFilter ? "No shortcuts match your filter." : "No shortcuts yet. Add one above.";
     row.appendChild(cell);
     el.list.appendChild(row);
     return;
   }
 
+  const ungrouped = filtered.filter(({ entry }) => !getShortcutGroup(entry));
+  const groupMap = new Map();
   filtered.forEach(({ entry, index }) => {
-    const row = document.createElement("tr");
-    row.dataset.index = String(index);
+    const g = getShortcutGroup(entry);
+    if (g) {
+      if (!groupMap.has(g)) groupMap.set(g, []);
+      groupMap.get(g).push({ entry, index });
+    }
+  });
 
-    const shortcutCell = document.createElement("td");
-    shortcutCell.textContent = getShortcutKey(entry);
+  ungrouped.forEach(({ entry, index }) => {
+    el.list.appendChild(buildShortcutRow(entry, index, usageStats, null));
+  });
 
-    const urlCell = document.createElement("td");
-    urlCell.className = "url-col";
-    const urlCode = document.createElement("code");
-    urlCode.textContent = entry.url;
-    urlCode.title = entry.url;
-    urlCell.appendChild(urlCode);
-
-    const titleCell = document.createElement("td");
-    titleCell.textContent = entry.title || "-";
-
-    const actionsCell = document.createElement("td");
-    const editBtn = document.createElement("button");
-    editBtn.type = "button";
-    editBtn.className = "ghost icon-label";
-    editBtn.innerHTML = `${ACTION_ICONS.edit}<span>Edit</span>`;
-    editBtn.addEventListener("click", () => startShortcutEdit(index, entry));
-
-    const deleteBtn = document.createElement("button");
-    deleteBtn.type = "button";
-    deleteBtn.className = "danger icon-label";
-    deleteBtn.innerHTML = `${ACTION_ICONS.delete}<span>Delete</span>`;
-    deleteBtn.addEventListener("click", () => removeShortcut(index));
-
-    actionsCell.appendChild(editBtn);
-    actionsCell.appendChild(deleteBtn);
-    actionsCell.style.display = "flex";
-    actionsCell.style.gap = "8px";
-
-    row.appendChild(shortcutCell);
-    row.appendChild(urlCell);
-    row.appendChild(titleCell);
-    const usageCell = document.createElement("td");
-    usageCell.className = "usage-cell usage-col";
-    const count = getUsageCount(usageStats, entry);
-    usageCell.textContent = count === 1 ? "1 use" : `${count} uses`;
-    row.appendChild(usageCell);
-
-    row.appendChild(actionsCell);
-    el.list.appendChild(row);
+  groupMap.forEach((items, groupName) => {
+    const isCollapsed = state.collapsedGroups.has(groupName);
+    el.list.appendChild(buildGroupHeaderRow(groupName, items.length, isCollapsed));
+    items.forEach(({ entry, index }) => {
+      const row = buildShortcutRow(entry, index, usageStats, groupName);
+      if (isCollapsed) row.hidden = true;
+      el.list.appendChild(row);
+    });
   });
 }
 

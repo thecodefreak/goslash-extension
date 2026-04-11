@@ -56,6 +56,20 @@ export function updateModeUI() {
   }
 }
 
+export function syncGroupFilter(groups) {
+  const prev = el.groupFilter.value;
+  el.groupFilter.innerHTML = '<option value="">All groups</option>';
+  groups.forEach((group) => {
+    const opt = document.createElement("option");
+    opt.value = group;
+    opt.textContent = group;
+    el.groupFilter.appendChild(opt);
+  });
+  if (prev && groups.includes(prev)) {
+    el.groupFilter.value = prev;
+  }
+}
+
 export function syncGroupOptions(groups) {
   const previousValue = el.shortcutGroup.value;
   el.shortcutGroup.innerHTML = "";

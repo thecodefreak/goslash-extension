@@ -16,6 +16,7 @@ export const el = {
   cancelBtn: document.getElementById("cancel-btn"),
   groupCancelBtn: document.getElementById("group-cancel-btn"),
   list: document.getElementById("shortcuts-list"),
+  groupFilter: document.getElementById("group-filter"),
   importFile: document.getElementById("import-file"),
   importBtn: document.getElementById("import-btn"),
   exportBtn: document.getElementById("export-btn"),
@@ -32,7 +33,8 @@ export const state = {
   currentMode: MODE_SHORTCUT,
   showUsageStats: false,
   sortByUsage: false,
-  sortDescending: true
+  sortDescending: true,
+  collapsedGroups: new Set()
 };
 
 export const TOAST_ICONS = {

@@ -1,5 +1,5 @@
 import { MODE_GROUP, el, state, clearGroupEditState } from "./options/state.js";
-import { activateMode, getSelectedMode, resetForm, showToast, syncGroupOptions, updateModeUI } from "./options/ui.js";
+import { activateMode, getSelectedMode, resetForm, showToast, syncGroupFilter, syncGroupOptions, updateModeUI } from "./options/ui.js";
 import {
   exportShortcuts,
   importShortcuts,
@@ -19,8 +19,9 @@ import { initializeOptionsData, loadOptionsData } from "./options/data.js";
 async function refreshList() {
   const { list, usageStats, allGroups } = await loadOptionsData();
   syncGroupOptions(allGroups);
+  syncGroupFilter(allGroups);
   renderGroups(allGroups, getGroupUsageMap(list));
-  renderShortcuts(list, usageStats, el.searchInput.value.trim());
+  renderShortcuts(list, usageStats, el.searchInput.value.trim(), el.groupFilter.value);
 }
 
 function applyUsageColumnState() {
@@ -92,6 +93,7 @@ el.modeTabs.forEach((tab, index) => {
 });
 
 el.searchInput.addEventListener("input", refreshList);
+el.groupFilter.addEventListener("change", refreshList);
 
 el.showUsage.addEventListener("change", () => {
   state.showUsageStats = el.showUsage.checked;
