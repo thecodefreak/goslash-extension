@@ -37,7 +37,14 @@ function buildShortcutRow(entry, index, usageStats, groupName) {
   }
 
   const shortcutCell = document.createElement("td");
-  shortcutCell.textContent = getShortcutKey(entry);
+  shortcutCell.className = "shortcut-col";
+  const chip = document.createElement("span");
+  chip.className = "shortcut-chip";
+  const key = document.createElement("span");
+  key.className = "shortcut-chip-key";
+  key.textContent = getShortcutKey(entry);
+  chip.append( key);
+  shortcutCell.appendChild(chip);
 
   const urlCell = document.createElement("td");
   urlCell.className = "url-col";

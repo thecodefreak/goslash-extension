@@ -393,6 +393,33 @@ td code {
   border-radius: 6px;
 }
 
+.shortcut-col {
+  white-space: nowrap;
+}
+
+.shortcut-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.shortcut-chip-prefix {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.shortcut-chip-key {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .url-col {
   max-width: 260px;
 }
