@@ -1,5 +1,6 @@
 export const MODE_SHORTCUT = "shortcut";
 export const MODE_GROUP = "group";
+export const FILTER_UNGROUPED = ":none";
 
 export const el = {
   form: document.getElementById("shortcut-form"),

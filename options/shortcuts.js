@@ -1,4 +1,4 @@
-import { ACTION_ICONS, el, state, getGroupsFromShortcuts, mergeGroups } from "./state.js";
+import { ACTION_ICONS, FILTER_UNGROUPED, el, state, getGroupsFromShortcuts, mergeGroups } from "./state.js";
 import { confirmAction, resetForm, setSelectedMode, showToast, updateBulkActions, updateModeUI } from "./ui.js";
 
 let refreshList = async () => {};
@@ -221,7 +221,9 @@ export function renderShortcuts(list, usageStats = {}, filterText = "", groupFil
     );
   }
 
-  if (groupFilter) {
+  if (groupFilter === FILTER_UNGROUPED) {
+    filtered = filtered.filter(({ entry }) => !getShortcutGroup(entry));
+  } else if (groupFilter) {
     filtered = filtered.filter(({ entry }) => getShortcutGroup(entry) === groupFilter);
   }
 

@@ -1,4 +1,4 @@
-import { MODE_GROUP, MODE_SHORTCUT, TOAST_ICONS, el, state, clearGroupEditState, clearShortcutInputs } from "./state.js";
+import { FILTER_UNGROUPED, MODE_GROUP, MODE_SHORTCUT, TOAST_ICONS, el, state, clearGroupEditState, clearShortcutInputs } from "./state.js";
 
 export function confirmAction({ title = "Are you sure?", message = "", confirmLabel = "Delete", danger = true } = {}) {
   return new Promise((resolve) => {
@@ -88,14 +88,14 @@ export function updateModeUI() {
 
 export function syncGroupFilter(groups) {
   const prev = el.groupFilter.value;
-  el.groupFilter.innerHTML = '<option value="">All groups</option>';
+  el.groupFilter.innerHTML = `<option value="">All groups</option><option value="${FILTER_UNGROUPED}">Ungrouped</option>`;
   groups.forEach((group) => {
     const opt = document.createElement("option");
     opt.value = group;
     opt.textContent = group;
     el.groupFilter.appendChild(opt);
   });
-  if (prev && groups.includes(prev)) {
+  if (prev === FILTER_UNGROUPED || (prev && groups.includes(prev))) {
     el.groupFilter.value = prev;
   }
 }
