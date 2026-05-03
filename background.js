@@ -49,14 +49,28 @@ function buildDescription(entry, matchedKeyword) {
   const keyword = escapeXml(shortcutKey);
   const label = escapeXml(entry.title || entry.url);
 
-  // Highlight the matched portion of the keyword
+  // Typed prefix bright (<match>), autocomplete suffix subtle (<dim>)
   if (matchedKeyword && shortcutKey.startsWith(matchedKeyword.toLowerCase())) {
     const matchPart = keyword.slice(0, matchedKeyword.length);
     const restPart = keyword.slice(matchedKeyword.length);
-    return `<match>${matchPart}</match>${restPart} <dim>- ${label}</dim>`;
+    return `<match>${matchPart}</match><dim>${restPart} - ${label}</dim>`;
   }
 
   return `<match>${keyword}</match> <dim>- ${label}</dim>`;
+}
+
+function findBestPrefixMatch(shortcuts, route) {
+  const lowerRoute = route.toLowerCase();
+  let best = null;
+  shortcuts.forEach((entry) => {
+    const key = getShortcutKey(entry);
+    if (!key) return;
+    if (!key.startsWith(lowerRoute) || key === lowerRoute) return;
+    if (!best || key.length < best.key.length) {
+      best = { entry, key, path: "" };
+    }
+  });
+  return best;
 }
 
 function resolveMatch(shortcuts, route) {
@@ -107,7 +121,7 @@ async function handleInput(text, disposition) {
   if (!parsed) return;
 
   const shortcuts = await getShortcuts();
-  const match = resolveMatch(shortcuts, parsed.route);
+  const match = resolveMatch(shortcuts, parsed.route) || findBestPrefixMatch(shortcuts, parsed.route);
   if (!match?.entry?.url) return;
 
   const target = applyTemplate(match.entry.url, match.path, parsed.query);
@@ -156,6 +170,7 @@ chrome.omnibox.onInputChanged.addListener((text, suggest) => {
     }
 
     const exactMatch = resolveMatch(shortcuts, parsed.route);
+    const bestPrefix = exactMatch ? null : findBestPrefixMatch(shortcuts, parsed.route);
 
     if (exactMatch) {
       // Show title prominently in default suggestion
@@ -164,19 +179,27 @@ chrome.omnibox.onInputChanged.addListener((text, suggest) => {
       chrome.omnibox.setDefaultSuggestion({
         description: `<match>${title}</match> <dim>- ${url}</dim>`
       });
+    } else if (bestPrefix) {
+      // Promote best prefix match to the top — Enter will fire it via the fallback in handleInput
+      chrome.omnibox.setDefaultSuggestion({
+        description: buildDescription(bestPrefix.entry, parsed.route)
+      });
     } else {
-      // No exact match - clear the hint
       chrome.omnibox.setDefaultSuggestion({
         description: `<dim>No match for:</dim> ${escapeXml(parsed.route)}`
       });
     }
 
-    // Dropdown: show prefix matches EXCLUDING exact match
+    // Dropdown: show prefix matches EXCLUDING exact match and the promoted default
+    const promotedKey = bestPrefix?.key || null;
     const otherMatches = shortcuts
       .map((entry) => ({ entry, key: getShortcutKey(entry) }))
       .filter(
         ({ key }) =>
-          Boolean(key) && key.startsWith(parsed.route.toLowerCase()) && key !== parsed.route.toLowerCase()
+          Boolean(key) &&
+          key.startsWith(parsed.route.toLowerCase()) &&
+          key !== parsed.route.toLowerCase() &&
+          key !== promotedKey
       )
       .slice(0, MAX_SUGGESTIONS);
 
