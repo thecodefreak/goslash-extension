@@ -74,10 +74,10 @@ function buildShortcutRow(entry, index, usageStats, groupName) {
   deleteBtn.innerHTML = `${ACTION_ICONS.delete}<span>Delete</span>`;
   deleteBtn.addEventListener("click", () => removeShortcut(index));
 
-  actionsCell.appendChild(editBtn);
-  actionsCell.appendChild(deleteBtn);
-  actionsCell.style.display = "flex";
-  actionsCell.style.gap = "8px";
+  const actionsWrap = document.createElement("div");
+  actionsWrap.className = "row-actions";
+  actionsWrap.append(editBtn, deleteBtn);
+  actionsCell.appendChild(actionsWrap);
 
   row.appendChild(shortcutCell);
   row.appendChild(urlCell);

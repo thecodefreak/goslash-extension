@@ -54,7 +54,6 @@ export function renderGroups(groups, groupUsageMap) {
     countCell.appendChild(countBadge);
 
     const actionsCell = document.createElement("td");
-    actionsCell.className = "group-actions";
 
     const editBtn = document.createElement("button");
     editBtn.type = "button";
@@ -72,8 +71,10 @@ export function renderGroups(groups, groupUsageMap) {
       deleteGroup(group);
     });
 
-    actionsCell.appendChild(editBtn);
-    actionsCell.appendChild(deleteBtn);
+    const actionsWrap = document.createElement("div");
+    actionsWrap.className = "row-actions";
+    actionsWrap.append(editBtn, deleteBtn);
+    actionsCell.appendChild(actionsWrap);
 
     row.appendChild(nameCell);
     row.appendChild(countCell);

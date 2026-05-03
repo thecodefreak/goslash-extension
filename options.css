@@ -327,7 +327,7 @@ button.danger:hover {
 }
 
 .shortcuts-table-wrap {
-  max-height: 420px;
+  max-height: 550px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background:
@@ -350,12 +350,6 @@ table {
 .group-table-wrap {
   max-height: 280px;
   overflow-y: auto;
-}
-
-.group-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
 }
 
 .group-count {
@@ -395,6 +389,12 @@ td code {
 
 .shortcut-col {
   white-space: nowrap;
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .shortcut-chip {
