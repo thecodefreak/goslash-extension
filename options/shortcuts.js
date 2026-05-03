@@ -1,5 +1,5 @@
 import { ACTION_ICONS, el, state, getGroupsFromShortcuts, mergeGroups } from "./state.js";
-import { resetForm, setSelectedMode, showToast, updateModeUI } from "./ui.js";
+import { confirmAction, resetForm, setSelectedMode, showToast, updateBulkActions, updateModeUI } from "./ui.js";
 
 let refreshList = async () => {};
 
@@ -28,6 +28,18 @@ function updateSortArrow() {
 
 const CHEVRON_SVG = `<svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
+function syncSelectAllState() {
+  const checkboxes = [...el.list.querySelectorAll(".row-checkbox")];
+  if (!checkboxes.length) {
+    el.selectAll.checked = false;
+    el.selectAll.indeterminate = false;
+    return;
+  }
+  const checked = checkboxes.filter((cb) => cb.checked).length;
+  el.selectAll.indeterminate = checked > 0 && checked < checkboxes.length;
+  el.selectAll.checked = checked === checkboxes.length;
+}
+
 function buildShortcutRow(entry, index, usageStats, groupName) {
   const row = document.createElement("tr");
   row.dataset.index = String(index);
@@ -35,6 +47,23 @@ function buildShortcutRow(entry, index, usageStats, groupName) {
     row.classList.add("group-item-row");
     row.dataset.group = groupName;
   }
+
+  const shortcutKey = getShortcutKey(entry);
+
+  const selectCell = document.createElement("td");
+  selectCell.className = "select-col";
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.className = "row-checkbox";
+  cb.dataset.key = shortcutKey;
+  cb.checked = state.selected.has(shortcutKey);
+  cb.addEventListener("change", () => {
+    if (cb.checked) state.selected.add(shortcutKey);
+    else state.selected.delete(shortcutKey);
+    updateBulkActions();
+    syncSelectAllState();
+  });
+  selectCell.appendChild(cb);
 
   const shortcutCell = document.createElement("td");
   shortcutCell.className = "shortcut-col";
@@ -79,6 +108,7 @@ function buildShortcutRow(entry, index, usageStats, groupName) {
   actionsWrap.append(editBtn, deleteBtn);
   actionsCell.appendChild(actionsWrap);
 
+  row.appendChild(selectCell);
   row.appendChild(shortcutCell);
   row.appendChild(urlCell);
   row.appendChild(titleCell);
@@ -125,7 +155,7 @@ function buildGroupHeaderRow(groupName, count, isCollapsed) {
   row.dataset.group = groupName;
 
   const cell = document.createElement("td");
-  cell.colSpan = 5;
+  cell.colSpan = 6;
 
   const btn = document.createElement("button");
   btn.type = "button";
@@ -208,10 +238,11 @@ export function renderShortcuts(list, usageStats = {}, filterText = "", groupFil
   if (!filtered.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 5;
+    cell.colSpan = 6;
     cell.textContent = filterText || groupFilter ? "No shortcuts match your filter." : "No shortcuts yet. Add one above.";
     row.appendChild(cell);
     el.list.appendChild(row);
+    syncSelectAllState();
     return;
   }
 
@@ -238,6 +269,8 @@ export function renderShortcuts(list, usageStats = {}, filterText = "", groupFil
       el.list.appendChild(row);
     });
   });
+
+  syncSelectAllState();
 }
 
 export function startShortcutEdit(index, entry) {
@@ -260,9 +293,20 @@ export async function removeShortcut(index) {
   if (!entry) return;
 
   const usageKey = getShortcutKey(entry);
+  const label = entry.title ? `${usageKey} (${entry.title})` : usageKey;
+  const confirmed = await confirmAction({
+    title: "Delete shortcut?",
+    message: `“${label}” will be permanently removed.`,
+    confirmLabel: "Delete shortcut"
+  });
+  if (!confirmed) return;
+
   list.splice(index, 1);
   await setShortcuts(list);
   await deleteUsage(usageKey);
+
+  state.selected.delete(usageKey);
+  updateBulkActions();
 
   if (state.currentEditIndex === index) {
     resetForm();
@@ -271,6 +315,50 @@ export async function removeShortcut(index) {
   }
 
   showToast("Shortcut removed!");
+  await refreshList();
+}
+
+export async function deleteSelectedShortcuts() {
+  const count = state.selected.size;
+  if (!count) return;
+
+  const confirmed = await confirmAction({
+    title: count === 1 ? "Delete shortcut?" : "Delete shortcuts?",
+    message: `${count} shortcut${count === 1 ? "" : "s"} will be permanently removed.`,
+    confirmLabel: count === 1 ? "Delete shortcut" : `Delete ${count} shortcuts`
+  });
+  if (!confirmed) return;
+
+  const list = await getShortcuts();
+  const keysToDelete = state.selected;
+  const editedKey = state.currentEditIndex !== null && list[state.currentEditIndex]
+    ? getShortcutKey(list[state.currentEditIndex])
+    : null;
+
+  const kept = [];
+  const removedKeys = [];
+  list.forEach((entry) => {
+    const key = getShortcutKey(entry);
+    if (keysToDelete.has(key)) removedKeys.push(key);
+    else kept.push(entry);
+  });
+
+  await setShortcuts(kept);
+  for (const key of removedKeys) {
+    await deleteUsage(key);
+  }
+
+  state.selected.clear();
+  updateBulkActions();
+
+  if (editedKey && keysToDelete.has(editedKey)) {
+    resetForm();
+  } else if (editedKey) {
+    const newIndex = kept.findIndex((entry) => getShortcutKey(entry) === editedKey);
+    state.currentEditIndex = newIndex === -1 ? null : newIndex;
+  }
+
+  showToast(`Deleted ${removedKeys.length} shortcut${removedKeys.length === 1 ? "" : "s"}.`);
   await refreshList();
 }
 
@@ -395,10 +483,16 @@ export async function exportShortcuts() {
 }
 
 export async function resetShortcuts() {
-  const confirmed = window.confirm("Reset to default shortcuts? This replaces your current list.");
+  const confirmed = await confirmAction({
+    title: "Reset to defaults?",
+    message: "Your current shortcuts and groups will be replaced with the default set.",
+    confirmLabel: "Reset to defaults"
+  });
   if (!confirmed) return;
 
   await Promise.all([setShortcuts(DEFAULT_SHORTCUTS), setGroups([])]);
+  state.selected.clear();
+  updateBulkActions();
   resetForm();
   showToast("Defaults restored!");
   await refreshList();

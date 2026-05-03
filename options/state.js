@@ -24,7 +24,17 @@ export const el = {
   searchInput: document.getElementById("search-input"),
   showUsage: document.getElementById("show-usage"),
   usageHeader: document.getElementById("usage-header"),
-  toastContainer: document.getElementById("toast-container")
+  toastContainer: document.getElementById("toast-container"),
+  selectAll: document.getElementById("select-all"),
+  bulkActions: document.getElementById("bulk-actions"),
+  bulkCount: document.getElementById("bulk-count-num"),
+  bulkDeleteBtn: document.getElementById("bulk-delete-btn"),
+  bulkClearBtn: document.getElementById("bulk-clear-btn"),
+  confirmDialog: document.getElementById("confirm-dialog"),
+  confirmTitle: document.getElementById("confirm-title"),
+  confirmMessage: document.getElementById("confirm-message"),
+  confirmConfirmBtn: document.getElementById("confirm-confirm-btn"),
+  confirmCancelBtn: document.getElementById("confirm-cancel-btn")
 };
 
 export const state = {
@@ -34,7 +44,8 @@ export const state = {
   showUsageStats: false,
   sortByUsage: false,
   sortDescending: true,
-  collapsedGroups: new Set()
+  collapsedGroups: new Set(),
+  selected: new Set()
 };
 
 export const TOAST_ICONS = {

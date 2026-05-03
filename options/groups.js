@@ -1,5 +1,5 @@
 import { ACTION_ICONS, MODE_GROUP, el, state, clearGroupEditState, getGroupsFromShortcuts, mergeGroups } from "./state.js";
-import { setSelectedMode, showToast, updateModeUI } from "./ui.js";
+import { confirmAction, setSelectedMode, showToast, updateModeUI } from "./ui.js";
 
 let refreshList = async () => {};
 
@@ -185,6 +185,13 @@ export async function deleteGroup(group) {
     await refreshList();
     return;
   }
+
+  const confirmed = await confirmAction({
+    title: "Delete group?",
+    message: `Group “${group}” will be permanently removed.`,
+    confirmLabel: "Delete group"
+  });
+  if (!confirmed) return;
 
   const nextGroups = savedGroups.filter((item) => item !== group);
   await setGroups(nextGroups);

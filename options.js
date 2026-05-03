@@ -1,6 +1,7 @@
 import { MODE_GROUP, el, state, clearGroupEditState } from "./options/state.js";
-import { activateMode, getSelectedMode, resetForm, showToast, syncGroupFilter, syncGroupOptions, updateModeUI } from "./options/ui.js";
+import { activateMode, getSelectedMode, resetForm, showToast, syncGroupFilter, syncGroupOptions, updateBulkActions, updateModeUI } from "./options/ui.js";
 import {
+  deleteSelectedShortcuts,
   exportShortcuts,
   importShortcuts,
   renderShortcuts,
@@ -58,6 +59,26 @@ el.groupCancelBtn.addEventListener("click", () => {
 el.importBtn.addEventListener("click", importShortcuts);
 el.exportBtn.addEventListener("click", exportShortcuts);
 el.resetBtn.addEventListener("click", resetShortcuts);
+
+el.bulkDeleteBtn.addEventListener("click", deleteSelectedShortcuts);
+el.bulkClearBtn.addEventListener("click", () => {
+  state.selected.clear();
+  updateBulkActions();
+  el.list.querySelectorAll(".row-checkbox").forEach((cb) => { cb.checked = false; });
+  el.selectAll.checked = false;
+  el.selectAll.indeterminate = false;
+});
+
+el.selectAll.addEventListener("change", () => {
+  const shouldCheck = el.selectAll.checked;
+  el.selectAll.indeterminate = false;
+  el.list.querySelectorAll(".row-checkbox").forEach((cb) => {
+    cb.checked = shouldCheck;
+    if (shouldCheck) state.selected.add(cb.dataset.key);
+    else state.selected.delete(cb.dataset.key);
+  });
+  updateBulkActions();
+});
 
 el.modeTabs.forEach((tab, index) => {
   tab.addEventListener("click", () => {
@@ -117,4 +138,5 @@ el.usageHeader.addEventListener("click", () => {
 await initializeOptionsData();
 await refreshList();
 applyUsageColumnState();
+updateBulkActions();
 resetForm();

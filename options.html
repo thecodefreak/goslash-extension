@@ -134,10 +134,16 @@
             Show usage stats
           </label>
         </div>
+        <div id="bulk-actions" class="bulk-actions">
+          <span class="bulk-count"><strong id="bulk-count-num">0</strong> selected</span>
+          <button id="bulk-clear-btn" type="button" class="ghost">Clear</button>
+          <button id="bulk-delete-btn" type="button" class="danger">Delete selected</button>
+        </div>
         <div class="table-wrap shortcuts-table-wrap">
           <table>
             <thead>
               <tr>
+                <th class="select-col"><input type="checkbox" id="select-all" aria-label="Select all visible shortcuts" /></th>
                 <th>Shortcut</th>
                 <th>URL</th>
                 <th>Title</th>
@@ -167,6 +173,17 @@
       </section>
 
     </main>
+
+    <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title">
+      <div class="dialog-body">
+        <h3 id="confirm-title">Are you sure?</h3>
+        <p id="confirm-message"></p>
+        <div class="dialog-actions">
+          <button type="button" id="confirm-cancel-btn" class="ghost">Cancel</button>
+          <button type="button" id="confirm-confirm-btn" class="danger">Delete</button>
+        </div>
+      </div>
+    </dialog>
 
     <div id="toast-container" role="status" aria-live="polite"></div>
 

@@ -1,5 +1,35 @@
 import { MODE_GROUP, MODE_SHORTCUT, TOAST_ICONS, el, state, clearGroupEditState, clearShortcutInputs } from "./state.js";
 
+export function confirmAction({ title = "Are you sure?", message = "", confirmLabel = "Delete", danger = true } = {}) {
+  return new Promise((resolve) => {
+    el.confirmTitle.textContent = title;
+    el.confirmMessage.textContent = message;
+    el.confirmConfirmBtn.textContent = confirmLabel;
+    el.confirmConfirmBtn.classList.toggle("danger", danger);
+
+    let result = false;
+    const onConfirm = () => { result = true; el.confirmDialog.close(); };
+    const onCancel = () => { el.confirmDialog.close(); };
+    const onClose = () => {
+      el.confirmConfirmBtn.removeEventListener("click", onConfirm);
+      el.confirmCancelBtn.removeEventListener("click", onCancel);
+      resolve(result);
+    };
+
+    el.confirmConfirmBtn.addEventListener("click", onConfirm);
+    el.confirmCancelBtn.addEventListener("click", onCancel);
+    el.confirmDialog.addEventListener("close", onClose, { once: true });
+    el.confirmDialog.showModal();
+    el.confirmCancelBtn.focus();
+  });
+}
+
+export function updateBulkActions() {
+  const count = state.selected.size;
+  el.bulkActions.classList.toggle("is-visible", count > 0);
+  el.bulkCount.textContent = String(count);
+}
+
 export function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
