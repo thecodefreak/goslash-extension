@@ -88,7 +88,7 @@ export function updateModeUI() {
 
 export function syncGroupFilter(groups) {
   const prev = el.groupFilter.value;
-  el.groupFilter.innerHTML = `<option value="">All groups</option><option value="${FILTER_UNGROUPED}">Ungrouped</option>`;
+  el.groupFilter.innerHTML = `<option value="">All</option><option value="${FILTER_UNGROUPED}">Ungrouped</option>`;
   groups.forEach((group) => {
     const opt = document.createElement("option");
     opt.value = group;
