@@ -2,7 +2,7 @@
   "name": "GoSlash",
   "short_name": "GoSlash",
   "description": "Jump to sites instantly with address bar shortcuts. Type 'go yt' to open YouTube, 'go gh/user' to visit GitHub profiles, and more.",
-  "version": "1.4.4",
+  "version": "1.6.3",
   "manifest_version": 3,
   "permissions": ["storage", "tabs"],
   "omnibox": {
