@@ -45,7 +45,14 @@ export function renderGroups(groups, groupUsageMap) {
     const row = document.createElement("tr");
 
     const nameCell = document.createElement("td");
-    nameCell.textContent = group;
+    nameCell.className = "shortcut-col";
+    const chip = document.createElement("span");
+    chip.className = "shortcut-chip";
+    const key = document.createElement("span");
+    key.className = "shortcut-chip-key";
+    key.textContent = group;
+    chip.append(key);
+    nameCell.appendChild(chip);
 
     const countCell = document.createElement("td");
     const countBadge = document.createElement("span");
