@@ -497,7 +497,8 @@ td code {
 .row-actions {
   display: flex;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .shortcut-chip {
@@ -751,20 +752,22 @@ table.usage-visible .usage-col {
 }
 
 .group-item-row td:first-child {
-  padding-left: 28px;
   position: relative;
 }
 
 .group-item-row td:first-child::before {
   content: "";
   position: absolute;
-  left: 12px;
-  top: 6px;
-  bottom: 6px;
-  width: 2px;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
   background: var(--accent);
-  border-radius: 999px;
-  opacity: 0.25;
+  opacity: 0.35;
+}
+
+.group-item-row .shortcut-chip {
+  transform: translateX(10px);
 }
 
 /* Toast Notifications */
