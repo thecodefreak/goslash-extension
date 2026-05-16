@@ -24,6 +24,8 @@ export const el = {
   resetBtn: document.getElementById("reset-btn"),
   searchInput: document.getElementById("search-input"),
   showUsage: document.getElementById("show-usage"),
+  densityToggle: document.getElementById("density-toggle"),
+  themeButtons: Array.from(document.querySelectorAll(".theme-btn[data-theme-value]")),
   usageHeader: document.getElementById("usage-header"),
   toastContainer: document.getElementById("toast-container"),
   selectAll: document.getElementById("select-all"),

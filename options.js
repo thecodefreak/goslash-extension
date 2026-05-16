@@ -16,6 +16,7 @@ import {
   setGroupRefreshHandler
 } from "./options/groups.js";
 import { initializeOptionsData, loadOptionsData } from "./options/data.js";
+import { applyPrefs, loadPrefs, savePrefs } from "./options/prefs.js";
 
 async function refreshList() {
   const { list, usageStats, allGroups } = await loadOptionsData();
@@ -133,6 +134,34 @@ el.usageHeader.addEventListener("click", () => {
     state.sortDescending = true;
   }
   refreshList();
+});
+
+function syncPrefsUI(prefs) {
+  el.densityToggle.checked = prefs.density === "comfortable";
+  el.themeButtons.forEach((btn) => {
+    const isActive = btn.dataset.themeValue === prefs.theme;
+    btn.setAttribute("aria-checked", String(isActive));
+  });
+}
+
+let currentPrefs = await loadPrefs();
+applyPrefs(currentPrefs);
+syncPrefsUI(currentPrefs);
+
+el.themeButtons.forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const theme = btn.dataset.themeValue;
+    if (theme === currentPrefs.theme) return;
+    currentPrefs = applyPrefs({ ...currentPrefs, theme });
+    syncPrefsUI(currentPrefs);
+    await savePrefs(currentPrefs);
+  });
+});
+
+el.densityToggle.addEventListener("change", async () => {
+  const density = el.densityToggle.checked ? "comfortable" : "compact";
+  currentPrefs = applyPrefs({ ...currentPrefs, density });
+  await savePrefs(currentPrefs);
 });
 
 await initializeOptionsData();
