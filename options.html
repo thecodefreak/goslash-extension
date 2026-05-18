@@ -5,20 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>GoSlash Shortcuts</title>
     <link rel="stylesheet" href="options.css" />
-    <script>
-      // Apply theme + density before paint to avoid flash.
-      (function () {
-        try {
-          var raw = localStorage.getItem("goslash:prefs");
-          var p = raw ? JSON.parse(raw) : null;
-          var theme = p && (p.theme === "light" || p.theme === "dark") ? p.theme : null;
-          if (theme) document.documentElement.setAttribute("data-theme", theme);
-          if (p && p.density === "comfortable") {
-            document.documentElement.classList.add("comfortable");
-          }
-        } catch (_) {}
-      })();
-    </script>
+    <script src="options/prefs-bootstrap.js"></script>
   </head>
   <body>
     <main class="page">
@@ -107,7 +94,7 @@
             <div class="field">
               <label for="url">Target URL</label>
               <input id="url" name="url" type="text" placeholder="facebook.com" autocomplete="off" />
-              <small>Use <code>{path}</code> and <code>{query}</code> for dynamic parts.</small>
+              <small>Use <code>{path}</code>, <code>{query}</code>, or positional <code>{var-1}</code> <code>{var-2}</code> … for dynamic parts.</small>
             </div>
             <div class="field">
               <label for="title">Title (optional)</label>

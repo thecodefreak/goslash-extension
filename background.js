@@ -28,10 +28,15 @@ function parseInput(text) {
 function applyTemplate(url, path, query) {
   const encodedPath = encodePath(path);
   const encodedQuery = query ? encodeURIComponent(query) : "";
+  const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
 
   let result = url;
   result = result.replace(/\{path\}/g, encodedPath);
   result = result.replace(/\{query\}/g, encodedQuery);
+  result = result.replace(/\{var-(\d+)\}/g, (_, n) => {
+    const token = tokens[parseInt(n, 10) - 1];
+    return token ? encodeURIComponent(token) : "";
+  });
   return result;
 }
 
