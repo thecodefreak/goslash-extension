@@ -62,9 +62,14 @@ Organize shortcuts with an optional group:
 Create dynamic shortcuts with template variables:
 - `{path}` - Inserts path segments after the keyword (e.g., `go gh/openai` -> `github.com/openai`)
 - `{query}` - Inserts the remaining text as a query (e.g., `go g hello world` -> Google search for "hello world")
+- `{var-1}`, `{var-2}`, … `{var-n}` - Positional placeholders, each mapped to the Nth whitespace-separated token after the keyword (URL-encoded individually). Example: a `compare` shortcut with URL `https://github.com/{var-1}/compare/{var-2}...{var-3}` invoked as `go compare openai/codex main feature-x` opens the compare view for those refs.
 
 ### Filter Shortcuts
 Use the search box on the options page to quickly filter shortcuts by keyword, URL, or title.
+
+### Appearance
+- **Theme**: System (default), Light, or Dark — switcher in the header. Choice syncs across devices.
+- **Density**: Toggle Compact (default) or Comfortable in the filter row to adjust padding throughout the options page.
 
 ### Usage Statistics
 Track how often each shortcut is used:
@@ -116,6 +121,8 @@ No build step or external dependencies — plain JS loaded directly by the brows
 - `options/shortcuts.js` - shortcut rendering and shortcut CRUD/import/export/reset.
 - `options/groups.js` - group list rendering and group CRUD rules.
 - `options/data.js` - storage load/init helpers.
+- `options/prefs.js` - theme and density preferences (load/save/apply).
+- `options/prefs-bootstrap.js` - classic script loaded synchronously in `<head>` to apply the cached theme/density before paint (avoids flash).
 - `options.js` - entrypoint and event wiring.
 
 **Background**
